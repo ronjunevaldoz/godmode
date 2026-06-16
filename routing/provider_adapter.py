@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 from agents.ollama_utility import OllamaUtilityAgent
 from agents.codex_engineer import CodexEngineerAgent
 from agents.gemini_vision import GeminiVisionAgent

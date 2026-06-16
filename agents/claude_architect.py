@@ -1,3 +1,5 @@
+from typing import Tuple
+
 class ClaudeArchitectAgent:
     """
     L3 Governor for high-reasoning, planning, and final validation.
