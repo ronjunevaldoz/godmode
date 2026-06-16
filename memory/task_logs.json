@@ -34,5 +34,53 @@
     "escalation_used": false,
     "notes": "Decision: DIRECT",
     "timestamp": "2026-06-16T23:50:45.402269"
+  },
+  {
+    "user_input": "Fix a memory leak in the JNI layer",
+    "intent": "Implementation.JNI",
+    "target_model": "codex_primary",
+    "confidence": 1.0,
+    "latency": 31.750903844833374,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-16T23:58:01.349879"
+  },
+  {
+    "user_input": "Design the core architecture for the lauchpad",
+    "intent": "Architecture.System",
+    "target_model": "claude_architect",
+    "confidence": 0.9,
+    "latency": 1.0479910373687744,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-16T23:58:02.811733"
+  },
+  {
+    "user_input": "Summarize these local system logs",
+    "intent": "Utility.Summary",
+    "target_model": "ollama_qwen",
+    "confidence": 0.9,
+    "latency": 1.0969793796539307,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-16T23:58:04.177715"
+  },
+  {
+    "user_input": "Analyze the UI layout of the homepage",
+    "intent": "Multimodal.UI",
+    "target_model": "gemini_vision",
+    "confidence": 1.0,
+    "latency": 1.1095390319824219,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-16T23:58:05.539364"
   }
 ]
