@@ -2,13 +2,14 @@ import json
 import requests
 from typing import Dict, Any, Tuple
 from .confidence import calculate_confidence
-from .capabilities import find_best_model
+from .capability_resolver import CapabilityResolver
+from .model_selector import ModelSelector
 
 # Configuration
 OLLAMA_URL = "http://localhost:11434/api/chat"
 OLLAMA_MODEL = "llama3"
 
-# Updated Granular Intent Hierarchy
+# Granular Intent Hierarchy
 INTENT_CATEGORIES = [
     "Implementation.Android", "Implementation.KMP", "Implementation.JNI",
     "Implementation.Backend", "Implementation.DevOps", "Implementation.Web",
@@ -20,9 +21,9 @@ INTENT_CATEGORIES = [
     "UNKNOWN"
 ]
 
-def load_intent_map() -> Dict[str, list]:
-    with open("routing/intent_map.json", "r") as f:
-        return json.load(f)
+# Initialize components
+resolver = CapabilityResolver()
+selector = ModelSelector()
 
 def classify_intent(user_input: str) -> Tuple[str, float]:
     """
@@ -60,30 +61,45 @@ def classify_intent(user_input: str) -> Tuple[str, float]:
 
 def route_request(user_input: str) -> Dict[str, Any]:
     """
-    Enhanced Routing: Intent -> Capabilities -> Best Model.
+    Refactored Routing: Intent -> Capabilities -> Model Registry -> Model ID.
     """
+    # 1. Triage Intent
     intent, score = classify_intent(user_input)
     conf_result = calculate_confidence(score)
-    intent_map = load_intent_map()
 
-    # Get required capabilities for the detected intent
-    required_capabilities = intent_map.get(intent, intent_map["UNKNOWN"])
+    # 2. Resolve Capabilities
+    required_capabilities = resolver.resolve_capabilities(intent)
 
-    # Find best model based on capabilities
-    target_model = find_best_model(required_capabilities)
+    # 3. Determine Selection Options (Local-First/Multimodal flags)
+    options = {
+        "privacy": "cloud", # Default
+        "multimodal": False
+    }
 
-    # Overrides for high-level governance or low confidence
+    # Local-first heuristic
+    if "Utility" in intent or "Classification" in intent:
+        options["privacy"] = "local"
+
+    # Multimodal heuristic
+    if "Multimodal" in intent or "UI" in intent or "Image" in intent:
+        options["multimodal"] = True
+
+    # 4. Select Best Model from Registry
+    model_id = selector.select_best_model(required_capabilities, options)
+
+    # 5. High-level Governance Overrides
+    # If confidence is too low, we escalate to the high-reasoning model
     if conf_result["decision"] == 'ESCALATE':
-        target_model = "claude"
+        model_id = "claude_architect"
 
-    # Hard-route strategy/validation to Claude regardless of capabilities if required by policy
+    # Hard-route architecture and review to Claude for safety
     if "Architecture" in intent or "Review" in intent:
-        target_model = "claude"
+        model_id = "claude_architect"
 
     return {
         "intent": intent,
         "confidence": score,
         "decision": conf_result["decision"],
-        "target_model": target_model,
+        "model_id": model_id,
         "required_capabilities": required_capabilities
     }

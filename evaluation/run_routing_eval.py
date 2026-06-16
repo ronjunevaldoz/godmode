@@ -12,11 +12,11 @@ def run_eval():
     for case in cases:
         prompt = case["prompt"]
         expected_intent = case["expected_intent"]
-        expected_model = case["expected_model"]
+        expected_model = case["expected_model_id"]
 
         result = route_request(prompt)
         actual_intent = result["intent"]
-        actual_model = result["target_model"]
+        actual_model = result["model_id"]
 
         is_correct = (actual_intent == expected_intent) and (actual_model == expected_model)
         if is_correct:

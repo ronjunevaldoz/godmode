@@ -1,0 +1,69 @@
+models:
+  codex_primary:
+    provider: openai
+    model: codex
+    capabilities:
+      - code_execution
+      - repo_awareness
+      - debugging
+      - refactoring
+    context_window: 200000
+    cost_tier: high
+    latency_tier: medium
+    privacy: cloud
+    multimodal: false
+    enabled: true
+
+  claude_architect:
+    provider: anthropic
+    model: claude-sonnet-4
+    capabilities:
+      - long_context_reasoning
+      - architecture_review
+      - documentation_generation
+      - final_validation
+    context_window: 200000
+    cost_tier: high
+    latency_tier: medium
+    privacy: cloud
+    multimodal: false
+    enabled: true
+
+  gemini_vision:
+    provider: google
+    model: gemini-2.5-pro
+    capabilities:
+      - multimodal_understanding
+      - ui_analysis
+      - image_reasoning
+      - video_reasoning
+    context_window: 1000000
+    cost_tier: medium
+    latency_tier: medium
+    privacy: cloud
+    multimodal: true
+    enabled: true
+
+  ollama_qwen:
+    provider: ollama
+    model: qwen2.5-coder:14b
+    capabilities:
+      - private_local_processing
+      - cheap_batch_processing
+      - classification
+      - summarization
+    context_window: 32000
+    cost_tier: low
+    latency_tier: low
+    privacy: local
+    multimodal: false
+    enabled: true
+
+fallbacks:
+  codex_primary:
+    - claude_architect
+  gemini_vision:
+    - claude_architect
+  ollama_qwen:
+    - codex_primary
+    - claude_architect
