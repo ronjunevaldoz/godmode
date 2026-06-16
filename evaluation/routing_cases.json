@@ -1,0 +1,37 @@
+[
+  {
+    "prompt": "Fix the memory leak in the JNI layer",
+    "expected_intent": "Implementation.JNI",
+    "expected_model": "codex"
+  },
+  {
+    "prompt": "Design the overall system architecture for the new agent",
+    "expected_intent": "Architecture.Agent",
+    "expected_model": "claude"
+  },
+  {
+    "prompt": "Does this UI screenshot look correct based on the design?",
+    "expected_intent": "Multimodal.UI",
+    "expected_model": "gemini"
+  },
+  {
+    "prompt": "Summarize these local logs from the last 24 hours",
+    "expected_intent": "Utility.Summary",
+    "expected_model": "ollama"
+  },
+  {
+    "prompt": "Review the PR for security vulnerabilities",
+    "expected_intent": "Review.Code",
+    "expected_model": "claude"
+  },
+  {
+    "prompt": "Create a technical spec for the Android SDK integration",
+    "expected_intent": "Documentation.Spec",
+    "expected_model": "claude"
+  },
+  {
+    "prompt": "Refactor the KMP shared module for better performance",
+    "expected_intent": "Implementation.KMP",
+    "expected_model": "codex"
+  }
+]

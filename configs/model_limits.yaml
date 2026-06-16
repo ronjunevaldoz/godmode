@@ -1,0 +1,18 @@
+# Token and Rate Limits per Model
+models:
+  claude:
+    max_tokens_per_request: 4096
+    cost_tier: "High"
+    priority: 3
+  codex:
+    max_tokens_per_request: 8192
+    cost_tier: "Medium"
+    priority: 2
+  gemini:
+    max_tokens_per_request: 16384
+    cost_tier: "Medium"
+    priority: 2
+  ollama:
+    max_tokens_per_request: 2048
+    cost_tier: "Low"
+    priority: 1

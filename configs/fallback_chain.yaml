@@ -1,0 +1,17 @@
+# Retry and Fallback Policies
+retry_policies:
+  codex:
+    retries: 1
+    fallback: ["claude"]
+  gemini:
+    retries: 2
+    fallback: ["claude"]
+  ollama:
+    retries: 0
+    fallback: ["codex", "claude"]
+  claude:
+    retries: 0
+    fallback: ["codex"]
+
+default_retry: 0
+default_fallback: ["claude"]
