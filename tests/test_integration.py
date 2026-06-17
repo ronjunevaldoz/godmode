@@ -24,7 +24,7 @@ def _ollama_reachable() -> bool:
     try:
         import requests
         base = os.getenv("OLLAMA_BASE_URL",
-                         "https://ron-local-home.duckdns.org/ollama").replace("/api/chat", "")
+                         "http://localhost:11434").replace("/api/chat", "")
         resp = requests.get(f"{base}/api/tags", timeout=5)
         return resp.ok
     except Exception:

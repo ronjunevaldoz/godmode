@@ -15,7 +15,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL: str = os.getenv(
-    "OLLAMA_BASE_URL", "https://ron-local-home.duckdns.org/ollama"
+    "OLLAMA_BASE_URL", "http://localhost:11434"
 ).replace("/api/chat", "")
 
 REGISTRY_PATH = "configs/model_registry.yaml"

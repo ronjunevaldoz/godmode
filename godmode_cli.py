@@ -135,7 +135,7 @@ def cmd_recommend(args: list[str]) -> None:
 def cmd_models(_args: list[str]) -> None:
     """Show all local Ollama models and their assigned roles."""
     import requests, os
-    base = os.getenv("OLLAMA_BASE_URL", "https://ron-local-home.duckdns.org/ollama")
+    base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     base = base.replace("/api/chat", "")
     try:
         data = requests.get(f"{base}/api/tags", timeout=5).json()
