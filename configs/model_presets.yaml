@@ -1,0 +1,139 @@
+# Godmode model presets — role assignments per server RAM tier.
+# Each tier lists the best publicly available Ollama model per role.
+# Run: python3 godmode_cli.py preset apply <tier>
+# Run: python3 godmode_cli.py preset apply auto   (picks tier from OLLAMA_SERVER_RAM_GB)
+#
+# registry_model_id: the key in model_registry.yaml to patch
+# model:             the Ollama model tag to pull and use
+
+presets:
+
+  6gb:
+    label: "Entry (6 GB)"
+    description: "Basic GPU or low-RAM server. Small but capable models."
+    min_ram_gb: 5
+    roles:
+      ollama_qwen_coder:
+        model: qwen2.5-coder:7b
+        role: code_review
+        notes: "Best 7B coder available; handles most code tasks"
+      ollama_deepseek:
+        model: deepseek-r1:7b
+        role: security_audit
+        notes: "R1 reasoning in 7B; decent for audit"
+      ollama_gemma:
+        model: gemma3:4b
+        role: research
+        notes: "Gemma 3 4B — fast, solid general reasoning"
+      ollama_qwen_fast:
+        model: qwen2.5:3b
+        role: assistant
+        notes: "Very fast; good for triage and classification"
+      ollama_llava:
+        model: moondream:latest
+        role: vision
+        notes: "1.7 GB vision model — only option at this tier"
+
+  8gb:
+    label: "Standard (8 GB)"
+    description: "Common GPU tier (RTX 3070 / 4060). Reliable 7-8B models."
+    min_ram_gb: 7
+    roles:
+      ollama_qwen_coder:
+        model: qwen2.5-coder:7b
+        role: code_review
+        notes: "Full qwen2.5-coder 7B fits cleanly"
+      ollama_deepseek:
+        model: deepseek-r1:8b
+        role: security_audit
+        notes: "DeepSeek R1 8B — strong reasoning for security"
+      ollama_gemma:
+        model: llama3.1:8b
+        role: research
+        notes: "Llama 3.1 8B — excellent general capability"
+      ollama_qwen_fast:
+        model: qwen2.5:7b
+        role: assistant
+        notes: "Capable assistant at this tier"
+      ollama_llava:
+        model: llava:latest
+        role: vision
+        notes: "LLaVA 7B — solid multimodal"
+
+  16gb:
+    label: "Mid-range (16 GB)"
+    description: "RTX 3090 / 4080 / M2 Pro. 14B models run cleanly."
+    min_ram_gb: 14
+    roles:
+      ollama_qwen_coder:
+        model: qwen2.5-coder:14b
+        role: code_review
+        notes: "14B coder — near GPT-4 level for code tasks"
+      ollama_deepseek:
+        model: deepseek-r1:14b
+        role: security_audit
+        notes: "DeepSeek R1 14B — best security reasoning at this tier"
+      ollama_gemma:
+        model: phi4:14b
+        role: research
+        notes: "Phi-4 14B — excellent for research and analysis"
+      ollama_qwen_fast:
+        model: qwen3:8b
+        role: assistant
+        notes: "Fast 8B for triage; keeps inference snappy"
+      ollama_llava:
+        model: llava:13b
+        role: vision
+        notes: "LLaVA 13B — significantly better than 7B for UI analysis"
+
+  32gb:
+    label: "High-end (32 GB)"
+    description: "RTX 4090 / A100 / M3 Max / dual-GPU. 30B models fit."
+    min_ram_gb: 28
+    roles:
+      ollama_qwen_coder:
+        model: qwen3-coder:30b
+        role: code_review
+        notes: "30B coder — top-tier local code intelligence"
+      ollama_deepseek:
+        model: deepseek-r1:32b
+        role: security_audit
+        notes: "R1 32B — strong multi-step security reasoning"
+      ollama_gemma:
+        model: gemma3:27b
+        role: research
+        notes: "Gemma 3 27B — best-in-class local research model"
+      ollama_qwen_fast:
+        model: qwen3:8b
+        role: assistant
+        notes: "Keep assistant fast; save VRAM for larger task models"
+      ollama_llava:
+        model: llama3.2-vision:11b
+        role: vision
+        notes: "Llama 3.2 Vision 11B — best open vision model"
+
+  64gb:
+    label: "Workstation (64 GB)"
+    description: "A100 / H100 / dual 4090 / M2 Ultra. 70B models viable."
+    min_ram_gb: 56
+    roles:
+      ollama_qwen_coder:
+        model: qwen2.5-coder:32b
+        role: code_review
+        notes: "32B coder — excellent quality ceiling"
+      ollama_deepseek:
+        model: deepseek-r1:70b
+        role: security_audit
+        notes: "R1 70B — near-Claude reasoning for security"
+      ollama_gemma:
+        model: llama3.1:70b
+        role: research
+        notes: "Llama 3.1 70B — frontier-class local research"
+      ollama_qwen_fast:
+        model: qwen3:8b
+        role: assistant
+        notes: "Fast assistant; 8B is plenty here"
+      ollama_llava:
+        model: llama3.2-vision:90b
+        role: vision
+        notes: "Llama 3.2 Vision 90B — best available open vision"

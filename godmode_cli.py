@@ -31,6 +31,75 @@ def cmd_clear(_args: list[str]) -> None:
     print("✓ Memory cleared.")
 
 
+def cmd_preset(args: list[str]) -> None:
+    """
+    Manage model presets.
+      preset list              — show tier matrix
+      preset show <tier>       — show what a tier sets (dry run)
+      preset apply <tier>      — patch model_registry.yaml
+      preset apply auto        — auto-select tier from OLLAMA_SERVER_RAM_GB
+    """
+    from routing.preset_manager import (
+        generate_matrix, list_presets, get_preset,
+        apply_preset, auto_select_tier,
+    )
+    from routing.model_recommender import _get_server_ram_gb, _get_pulled_models
+
+    sub = args[0] if args else "list"
+
+    if sub == "list":
+        print(generate_matrix())
+        return
+
+    if sub in ("show", "apply"):
+        if len(args) < 2:
+            print(f"Usage: godmode_cli.py preset {sub} <tier|auto>")
+            return
+
+        tier = args[1]
+        if tier == "auto":
+            pulled   = _get_pulled_models()
+            ram, src = _get_server_ram_gb(pulled)
+            tier     = auto_select_tier(ram)
+            print(f"  Server RAM ~{ram:.0f} GB ({src}) → selecting tier: {tier}\n")
+
+        preset = get_preset(tier)
+        if not preset:
+            print(f"Unknown tier '{tier}'. Run 'preset list' to see options.")
+            return
+
+        dry = (sub == "show")
+        changes = apply_preset(tier, dry_run=dry)
+
+        action = "Would change" if dry else "Applied"
+        print(f"  Preset: {preset['label']} — {preset['description']}\n")
+        if changes:
+            print(f"  {action}:")
+            for c in changes:
+                print(c)
+        else:
+            print("  No changes — registry already matches this preset.")
+        print()
+
+        if not dry:
+            # Show pull commands for any model not yet on the server
+            from routing.model_recommender import _get_pulled_models
+            pulled_names = {m["name"] for m in _get_pulled_models()}
+            missing = [
+                info["model"]
+                for info in preset["roles"].values()
+                if info["model"] not in pulled_names
+            ]
+            if missing:
+                print("  Models not yet pulled on server:")
+                for m in missing:
+                    print(f"    ollama pull {m}")
+                print()
+        return
+
+    print(f"Unknown subcommand '{sub}'. Use: list | show <tier> | apply <tier|auto>")
+
+
 def cmd_recommend(args: list[str]) -> None:
     """Show system-aware model recommendations. Pass --apply to patch the registry."""
     from routing.model_recommender import generate_report, patch_registry
@@ -83,7 +152,8 @@ COMMANDS = {
     "eval":      (cmd_eval,      "Run routing accuracy evaluation"),
     "clear":     (cmd_clear,     "Reset memory / task logs"),
     "models":    (cmd_models,    "List Ollama models and their roles"),
-    "recommend": (cmd_recommend, "System-aware model recommendations  [--apply to patch registry]"),
+    "preset":    (cmd_preset,    "Model presets by RAM tier  [list|show|apply <tier|auto>]"),
+    "recommend": (cmd_recommend, "Dynamic model recommendations  [--apply to patch registry]"),
 }
 
 

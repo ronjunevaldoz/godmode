@@ -70,27 +70,15 @@ def _get_server_ram_gb(pulled: list[dict]) -> tuple[float, str]:
     if _SERVER_RAM_ENV:
         return float(_SERVER_RAM_ENV), f"OLLAMA_SERVER_RAM_GB={_SERVER_RAM_ENV}"
 
-    # Try /api/ps for currently loaded model sizes
-    try:
-        resp = requests.get(f"{OLLAMA_BASE_URL}/api/ps", timeout=5)
-        if resp.ok:
-            running = resp.json().get("models", [])
-            if running:
-                total_vram = sum(m.get("size_vram", 0) for m in running)
-                if total_vram:
-                    # Loaded models + overhead = estimated server RAM
-                    estimate = total_vram / 1e9 / 0.85
-                    return estimate, "inferred from /api/ps (running models)"
-    except Exception:
-        pass
-
-    # Fall back: largest model that exists must fit in server RAM
+    # /api/ps only shows one loaded model's VRAM — always an underestimate, skip it.
+    # Instead: the largest model you've successfully pulled must fit in server RAM,
+    # so use it as a lower-bound and add a 25% headroom factor.
     if pulled:
         largest = max(m["size_gb"] for m in pulled)
-        estimate = largest / 0.75  # assume model takes 75% of available RAM when loaded
-        return estimate, f"estimated from largest model ({largest:.1f} GB)"
+        estimate = largest / 0.75
+        return estimate, f"estimated ≥ {largest:.1f} GB (largest pulled model × 1.25 headroom)"
 
-    return 32.0, "default fallback"
+    return 32.0, "default fallback — set OLLAMA_SERVER_RAM_GB for accuracy"
 
 
 def _get_pulled_models() -> list[dict]:
