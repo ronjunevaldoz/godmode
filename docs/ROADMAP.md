@@ -36,6 +36,18 @@ The core routing loop is production-ready:
 - Use `npx skills add vercel-labs/agent-skills` to accelerate UI scaffolding
 - Deploy to Vercel — zero config, free tier sufficient for personal dashboard
 
+### Design guidance
+
+Layout: top nav (Dashboard · Reports · Models · Settings) + user avatar. Four metric cards across the top (total runs, saved vs Opus, local rate, avg quality). Two-column chart row below (intent distribution donut + 30-day quality score trend line). Bottom row: recent failures table + model usage bar chart with efficiency verdict.
+
+**Quality score color coding:**
+- `score ≥ 0.70` → green badge
+- `0.50 ≤ score < 0.70` → amber badge
+- `score < 0.50` → red badge
+
+**Submit report flow (Phase 3 entry point):**
+"Submit report" button in the failures table triggers a confirmation panel showing the anonymized payload (intent, model, score, reason, ts — no prompt text, no file contents). User confirms → sent via `godmode_cli.py submit` or MCP `godmode.submit()`. Prompt suggestion pattern: button calls `sendPrompt('godmode submit --preview')` so the user sees what will be sent before it goes out.
+
 ---
 
 ## Phase 3 — Community platform
