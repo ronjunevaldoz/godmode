@@ -37,6 +37,21 @@ def _inject_file_context(prompt: str) -> str:
     file_block = "\n\n".join(found)
     return f"{file_block}\n\n{prompt}"
 
+_CONTEXT_FILE = Path(__file__).parent / "GODMODE_CONTEXT.md"
+_CODE_INTENTS = {"Review", "Fix", "Improve", "Architecture", "Generate"}
+
+
+def _load_project_context(intent: str) -> str:
+    """Return GODMODE_CONTEXT.md contents for code-related intents, else empty."""
+    top = intent.split(".")[0]
+    if top not in _CODE_INTENTS:
+        return ""
+    try:
+        return _CONTEXT_FILE.read_text(errors="replace")[:2000]
+    except OSError:
+        return ""
+
+
 _LOGS_DIR = Path(__file__).parent / "logs"
 _FAILURE_LOG = _LOGS_DIR / "failures.jsonl"
 
@@ -163,9 +178,13 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
     escalation_reason = routing.get("escalation_reason")
     review_required   = routing.get("review_required", False)
 
-    # Enrich execution prompt with file contents if any paths are mentioned
+    # Enrich execution prompt with file contents + project context
     execution_prompt = _inject_file_context(user_input)
     files_injected = execution_prompt != user_input
+
+    project_ctx = _load_project_context(intent)
+    if project_ctx:
+        execution_prompt = f"<project_context>\n{project_ctx}\n</project_context>\n\n{execution_prompt}"
 
     mode_tag = "[skill]" if SKILL_MODE else "[standalone]"
     print(f"  Mode      : {mode_tag}")
@@ -173,6 +192,8 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
     print(f"  Model     : {model_id}  [{decision}]  confidence={routing['confidence']:.2f}")
     if files_injected:
         print(f"  Files     : injected file context into prompt")
+    if project_ctx:
+        print(f"  Context   : injected GODMODE_CONTEXT.md")
     if escalation_reason:
         flag = "⚑ review" if SKILL_MODE else "↑ cloud"
         print(f"  {flag}  : {escalation_reason}")

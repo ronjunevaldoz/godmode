@@ -1,0 +1,19 @@
+# Project Context for Godmode
+#
+# Copy this file to GODMODE_CONTEXT.md and fill in your project details.
+# Godmode injects this into code-related prompts (review, fix, refactor, architecture).
+# Keep it concise — under 2000 chars. The model reads this before your prompt.
+#
+# GODMODE_CONTEXT.md is gitignored — it's personal to your project.
+
+## Stack
+- Language:
+- Framework:
+- Database:
+- Auth:
+
+## Key conventions
+-
+
+## Do NOT suggest
+-

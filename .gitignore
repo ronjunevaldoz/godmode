@@ -57,3 +57,4 @@ memory/task_logs.json
 node_modules/__pycache__/
 *.pyc
 logs/*.jsonl
+GODMODE_CONTEXT.md
