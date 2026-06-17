@@ -67,21 +67,28 @@ python3 godmode_cli.py run "Design a microservices auth architecture"
 
 Each run prints the routed model, mode tag (`[SKILL]` / `[STANDALONE]`), and the result. High-stakes tasks (bug fixes, security reviews) are wrapped in a `NEEDS REVIEW` block in skill mode.
 
-### Code review or security tasks — always include the file path
+### REQUIRED for code tasks: always pass the file path with extension
 
-Godmode auto-reads any file paths mentioned in the prompt and injects their contents before sending to the model. Without the actual code the model will hallucinate generic advice.
+Godmode reads any file path in the prompt and injects the code before sending to the model.
+**Without a file path the model has no code to read — it will hallucinate generic advice.**
+
+Before calling godmode on any code task:
+1. Identify the file path relative to the project root (e.g. `src/services/SalaryServiceImpl.kt`)
+2. Include that path literally in the prompt — with the file extension
 
 ```bash
-# Good — godmode reads and injects the file automatically
-python3 godmode_cli.py run "security review on src/services/PaymentService.kt"
-python3 godmode_cli.py run "find bugs in app/routes/auth.py"
-python3 godmode_cli.py run "refactor utils/parser.ts for readability"
+# Correct — godmode reads SalaryServiceImpl.kt and injects it
+python3 "$GODMODE_CLI" run "security review on src/services/SalaryServiceImpl.kt"
+python3 "$GODMODE_CLI" run "find bugs in app/routes/auth.py"
+python3 "$GODMODE_CLI" run "refactor utils/parser.ts for readability"
 
-# Bad — no file path, model has no context
-python3 godmode_cli.py run "security review on PaymentService"
+# WRONG — class name only, no extension → no file injected → hallucinated output
+python3 "$GODMODE_CLI" run "review the SalaryServiceImpl for security issues"
+python3 "$GODMODE_CLI" run "security review on PaymentService"
 ```
 
-If Claude is invoking godmode on a file it has open, pass the relative path from the project root (e.g. `src/services/Foo.kt`), not an absolute path.
+The file path must contain the extension (`.kt`, `.py`, `.ts`, `.java`, etc.).
+If you have the file open, use its path relative to the project root, not an absolute path.
 
 ## All commands
 
