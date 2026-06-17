@@ -111,6 +111,7 @@ def cmd_preset(args: list[str]) -> None:
 def cmd_coverage(_args: list[str]) -> None:
     """Run test suite with coverage and print the term-missing report."""
     import subprocess
+    # Hardcoded args — no user input reaches subprocess.run
     result = subprocess.run(
         ["python3", "-m", "pytest", "tests/", "--cov", "--cov-report=term-missing", "-q"],
         capture_output=False,
