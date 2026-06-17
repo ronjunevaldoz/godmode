@@ -41,6 +41,10 @@ virtualenv/
 .DS_Store
 Thumbs.db
 
+# Skills install targets
+.agents/
+.continue/
+
 # Environment / secrets
 .env
 .env.local

@@ -1,11 +1,11 @@
 {
   "version": 1,
   "skills": {
-    "skill-creator": {
-      "source": "anthropics/skills",
+    "godmode-runtime": {
+      "source": "ronjunevaldoz/godmode",
       "sourceType": "github",
-      "skillPath": "skills/skill-creator/SKILL.md",
-      "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
+      "skillPath": "skills/godmode-runtime/SKILL.md",
+      "computedHash": "6afc1283660f583e9ba35fa278baef17e6961e8c7d280725a49f7383e4d87234"
     },
     "python-best-practices": {
       "source": "rohitg00/awesome-claude-code-toolkit",
@@ -13,10 +13,11 @@
       "skillPath": "skills/python-best-practices/SKILL.md",
       "scope": "global"
     },
-    "godmode-runtime": {
-      "source": "local",
-      "sourceType": "local",
-      "skillPath": "skills/godmode-runtime/SKILL.md"
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
     }
   }
 }
