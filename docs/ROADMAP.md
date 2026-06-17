@@ -29,10 +29,12 @@ The core routing loop is production-ready:
 
 **Goal:** visualize your own godmode stats in a browser.
 
-- Simple Next.js or static site
-- Reads from a JSON endpoint (can start with a GitHub Gist)
+**Stack:** Next.js · shadcn/ui · Vercel (deploy) · Vercel agent skills (AI-assisted build)
+
 - Charts: savings over time, intent distribution, quality score trends, top failure reasons
-- No backend required — personal data only
+- Reads from Phase 1 submission endpoint (or local JSON export as fallback)
+- Use `npx skills add vercel-labs/agent-skills` to accelerate UI scaffolding
+- Deploy to Vercel — zero config, free tier sufficient for personal dashboard
 
 ---
 
@@ -40,10 +42,16 @@ The core routing loop is production-ready:
 
 **Goal:** aggregate anonymized reports across users to crowdsource routing improvements.
 
-- Users opt-in via `godmode_cli.py submit`
-- Public dashboard: which `intent × model` pairs fail most across all users
+**Submission:** via existing godmode MCP tool or CLI — no new client tooling needed.
+- MCP: `godmode.submit()` tool callable from Claude Desktop
+- CLI: `godmode_cli.py submit` opt-in command
+- Both send the same anonymized schema defined in Phase 1
+
+**Platform:**
+- Public dashboard (same stack as Phase 2) showing cross-user failure patterns
+- Which `intent × model` pairs fail most across all installs
+- Leaderboard: best local model per intent based on community quality scores
 - Submitted reports feed back into `intent_map.json` and `model_registry.yaml` improvements
-- Leaderboard: best local model per intent category based on community quality scores
 
 ---
 
