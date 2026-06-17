@@ -6,6 +6,17 @@
       "sourceType": "github",
       "skillPath": "skills/skill-creator/SKILL.md",
       "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
+    },
+    "python-best-practices": {
+      "source": "rohitg00/awesome-claude-code-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/python-best-practices/SKILL.md",
+      "scope": "global"
+    },
+    "godmode-runtime": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": "skills/godmode-runtime/SKILL.md"
     }
   }
 }

@@ -1,66 +1,124 @@
-# Skills Directory
+# Godmode Skills
 
-This directory contains all the skills available to the godmode agent system. Skills are organized into logical categories to improve maintainability and discoverability.
+Skills extend the godmode agent system with domain knowledge loaded directly into context.
 
 ## Structure
 
-- `skills/core/` - Core agent capabilities and fundamental skills
-- `skills/utilities/` - Utility functions and helper methods  
-- `skills/analysis/` - Analytical and data processing skills
-- `skills/communication/` - Communication and interaction skills
-- `skills/tools/` - Tool integration and external service skills
-- `skills/helpers/` - Supporting helper functions
-
-## Adding New Skills
-
-When adding new skills:
-1. Place them in the appropriate subdirectory based on their functionality
-2. Follow the naming convention: `skill_name.py`
-3. Include proper documentation and type hints
-4. Ensure they follow the existing code style
+```
+skills/
+  godmode-runtime/     ← project skill (SKILL.md = Claude skill standard)
+    SKILL.md
+    __init__.py
+skills-lock.json       ← pinned skill versions and hashes
+```
 
 ## Installing Skills
 
-Skills can be installed using the following methods:
+All skills are managed via the `npx skills` CLI, which installs to `~/.agents/skills/` and symlinks into each supported agent automatically.
 
-### Via .gemini file
-Create a `.gemini` file in your project root with:
-\`\`\`json
-{
-  "skills": [
-    "analysis_skill",
-    "code_generation_skill"
-  ]
-}
-\`\`\`
+### Universal install (recommended)
 
-### Via .claude file  
-Create a `.claude` file in your project root with:
-\`\`\`json
-{
-  "skills": [
-    "architecture_skill",
-    "documentation_skill"
-  ]
-}
-\`\`\`
-
-### Via .agent file
-Create an `.agent` file in your project root with:
-\`\`\`json
-{
-  "skill_imports": [
-    "skills.analysis.analysis_skill",
-    "skills.communication.code_review_skill"
-  ]
-}
-\`\`\`
-
-## Usage
-
-Skills can be imported and used throughout the agent system:
-
-```python
-from skills.core import some_core_skill
+```bash
+npx skills add <owner/repo@skill-name> -g -y
 ```
 
+The `-g` flag installs globally (user-level). `-y` skips interactive prompts.
+
+---
+
+### Claude Code
+
+Skills are symlinked into `~/.claude/skills/`. Claude Code loads any `SKILL.md` file from that directory automatically at the start of a session.
+
+```bash
+# Install
+npx skills add <owner/repo@skill-name> -g -y
+
+# Verify
+ls ~/.claude/skills/
+```
+
+To reference a local project skill directly, add its path to your `CLAUDE.md`:
+
+```markdown
+# CLAUDE.md
+See [skills/godmode-runtime/SKILL.md](skills/godmode-runtime/SKILL.md) for project context.
+```
+
+---
+
+### Gemini CLI
+
+Skills are installed as universal copies under `~/.agents/skills/` and picked up by Gemini CLI on startup.
+
+```bash
+# Install
+npx skills add <owner/repo@skill-name> -g -y
+
+# Verify
+ls ~/.agents/skills/
+```
+
+To add a project-local skill for Gemini, create a `.geminirc` or `GEMINI.md` in the project root and reference the skill content directly — Gemini CLI reads these on startup.
+
+---
+
+### Codex (OpenAI)
+
+Skills install as universal copies under `~/.agents/skills/`. Codex picks them up automatically.
+
+```bash
+# Install
+npx skills add <owner/repo@skill-name> -g -y
+
+# Verify
+ls ~/.agents/skills/
+```
+
+For project-scoped context, add a `AGENTS.md` file at the repo root — Codex reads it automatically when running in that directory.
+
+---
+
+## Locking skills
+
+After installing, commit `skills-lock.json` to pin exact versions:
+
+```bash
+# skills-lock.json is auto-updated by npx skills add
+git add skills-lock.json
+git commit -m "chore: pin skill versions"
+```
+
+## Available skills in this project
+
+| Skill | Scope | Description |
+|-------|-------|-------------|
+| [`godmode-runtime`](godmode-runtime/SKILL.md) | project | Godmode routing, intent hierarchy, agent roles, and CLI |
+| [`skill-creator`](https://skills.sh/anthropics/skills/skill-creator) | global | Create new skills from scratch |
+| [`python-best-practices`](https://skills.sh/rohitg00/awesome-claude-code-toolkit/python-best-practices) | global | Python 3.12+ type hints, async, testing patterns |
+
+## Creating a new skill
+
+A skill is a single `SKILL.md` file with frontmatter:
+
+```markdown
+---
+name: my-skill
+description: One-liner used for relevance matching — be specific
+---
+
+# My Skill
+
+## When to Use
+...
+
+## Content
+...
+```
+
+To scaffold and publish:
+
+```bash
+npx skills init my-skill
+npx skills publish
+```

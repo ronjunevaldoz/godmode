@@ -7,7 +7,7 @@ class TestAgentInitialization(unittest.TestCase):
     def test_missing_api_key_raises_error(self):
         """Verify that BaseAgent raises EnvironmentError if API key is missing."""
         # Temporarily unset keys to ensure they aren't leaking from host env during test
-        old_openai = os.environ.get("OPENAI_API_key")
+        old_openai = os.environ.get("OPENAI_API_KEY")
         old_anthropic = os.environ.get("ANTHROPIC_API_KEY")
         
         if "OPENAI_API_KEY" in os.environ: del os.environ["OPENAI_API_KEY"]
@@ -36,8 +36,7 @@ class TestAgentInitialization(unittest.TestCase):
             self.assertEqual(agent.model_id, "gpt-4o")
             
             arch = ClaudeArchitectAgent()
-            self.assertEqual(arch.model_id, "claude-3-opus-29240229".replace('2924', '24')) # Handle typo check
-            # Note: The actual class uses the string provided in __init__
+            self.assertEqual(arch.model_id, "claude-opus-4-8")
         except Exception as e:
             self.fail(f"Initialization failed with dummy keys: {e}")
         finally:
