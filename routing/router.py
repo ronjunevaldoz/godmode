@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "https://ron-local-home.duckdns.org/ollama/api/chat")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
 
-# Intents where a wrong answer causes real harm — always use cloud
+# skill  → running under Claude Desktop; no cloud keys, Claude is the reviewer
+# standalone → running independently; cloud escalation is live
+GODMODE_MODE: str = os.getenv("GODMODE_MODE", "skill").lower()
+SKILL_MODE = GODMODE_MODE == "skill"
+
+# Intents where a wrong answer causes real harm
 HIGH_STAKES_INTENTS: frozenset[str] = frozenset({
     "Fix.Bug",
     "Review.Security",
@@ -111,37 +116,57 @@ def route_request(user_input: str) -> dict:
     model_id = selector.select_best_model(required_capabilities, options)
     complexity = _complexity(user_input)
     escalation_reason: str | None = None
+    review_required   = False
 
-    # ── Tier 1: hard governance — always cloud ──────────────────────────────
-    if intent in {"Architecture.System", "Architecture.Mobile", "Architecture.Agent",
-                  "Review.Architecture", "Documentation.Spec"}:
-        model_id = "claude_architect"
-        escalation_reason = "architecture/spec governance"
+    if SKILL_MODE:
+        # ── Skill mode: Claude Desktop is the reviewer — stay local, flag for review ──
+        if intent in {"Architecture.System", "Architecture.Mobile", "Architecture.Agent",
+                      "Review.Architecture", "Documentation.Spec"}:
+            # Keep best local model; Claude will handle the real architecture work
+            review_required   = True
+            escalation_reason = "architecture/spec — review recommended"
 
-    # ── Tier 2: high-stakes intents — cloud by default ──────────────────────
-    elif intent in HIGH_STAKES_INTENTS:
-        model_id = "codex_primary"
-        escalation_reason = f"high-stakes intent ({intent})"
+        elif intent in HIGH_STAKES_INTENTS:
+            review_required   = True
+            escalation_reason = f"high-stakes intent ({intent}) — verify before applying"
 
-    # ── Tier 3: complexity escalation — dangerous keywords or very long prompt
-    elif complexity == "high" and model_id not in ("claude_architect", "codex_primary"):
-        model_id = "codex_primary"
-        escalation_reason = "complexity gate (danger keywords or long prompt)"
+        elif complexity == "high":
+            review_required   = True
+            escalation_reason = "complexity gate (danger keywords or long prompt)"
 
-    # ── Tier 4: low-confidence catch-all ────────────────────────────────────
-    elif conf_result["decision"] == "ESCALATE":
-        model_id = "claude_architect"
-        escalation_reason = "low routing confidence"
+        elif conf_result["decision"] == "ESCALATE":
+            review_required   = True
+            escalation_reason = "low routing confidence"
+
+    else:
+        # ── Standalone mode: hard-escalate to cloud models ───────────────────
+        if intent in {"Architecture.System", "Architecture.Mobile", "Architecture.Agent",
+                      "Review.Architecture", "Documentation.Spec"}:
+            model_id = "claude_architect"
+            escalation_reason = "architecture/spec governance"
+
+        elif intent in HIGH_STAKES_INTENTS:
+            model_id = "codex_primary"
+            escalation_reason = f"high-stakes intent ({intent})"
+
+        elif complexity == "high" and model_id not in ("claude_architect", "codex_primary"):
+            model_id = "codex_primary"
+            escalation_reason = "complexity gate (danger keywords or long prompt)"
+
+        elif conf_result["decision"] == "ESCALATE":
+            model_id = "claude_architect"
+            escalation_reason = "low routing confidence"
 
     if escalation_reason:
-        logger.info(f"[Router] Escalated to {model_id}: {escalation_reason}")
+        logger.info(f"[Router] {'[skill]' if SKILL_MODE else '[cloud]'} {escalation_reason}")
 
     return {
-        "intent": intent,
-        "confidence": score,
-        "decision": conf_result["decision"],
-        "model_id": model_id,
-        "complexity": complexity,
-        "escalation_reason": escalation_reason,
+        "intent":               intent,
+        "confidence":           score,
+        "decision":             conf_result["decision"],
+        "model_id":             model_id,
+        "complexity":           complexity,
+        "escalation_reason":    escalation_reason,
+        "review_required":      review_required,
         "required_capabilities": required_capabilities,
     }

@@ -1,9 +1,10 @@
+import os
 import sys
 import time
 import yaml
 from typing import Tuple
 
-from routing.router import route_request
+from routing.router import route_request, SKILL_MODE
 from routing.provider_adapter import ProviderAdapter
 from routing.model_selector import ModelSelector
 from routing.quality_gate import assess as quality_assess, should_escalate
@@ -18,6 +19,35 @@ selector = ModelSelector()
 with open("configs/fallback_chain.yaml") as f:
     FALLBACK_CONFIG = yaml.safe_load(f)
 
+LOCAL_IDS: frozenset[str] = frozenset({
+    "ollama_qwen_coder", "ollama_deepseek", "ollama_gemma",
+    "ollama_qwen_fast", "ollama_llava", "ollama_qwen",
+})
+
+_REVIEW_HEADER = """\
+╔══════════════════════════════════════════════════════════╗
+║  ⚠  GODMODE · NEEDS REVIEW                              ║
+║  Local model result — verify before applying             ║
+╚══════════════════════════════════════════════════════════╝"""
+
+_REVIEW_FOOTER = """\
+╔══════════════════════════════════════════════════════════╗
+║  END GODMODE RESULT                                      ║
+╚══════════════════════════════════════════════════════════╝"""
+
+
+def _wrap_review(result: str, reason: str, intent: str, model: str, score: float | None = None) -> str:
+    score_line = f"  Quality score : {score:.2f}\n" if score is not None else ""
+    return (
+        f"{_REVIEW_HEADER}\n"
+        f"  Intent        : {intent}\n"
+        f"  Local model   : {model}\n"
+        f"  Reason        : {reason}\n"
+        f"{score_line}"
+        f"\n{result}\n\n"
+        f"{_REVIEW_FOOTER}"
+    )
+
 
 def run_with_retry(model_id: str, prompt: str, context: dict | None = None) -> Tuple[str, bool, bool]:
     policy = selector.get_fallback_chain(model_id)
@@ -30,6 +60,10 @@ def run_with_retry(model_id: str, prompt: str, context: dict | None = None) -> T
             return result, True, fallback_used
         except Exception as e:
             print(f"  Attempt {attempt + 1} failed for {model_id}: {e}")
+
+    # In skill mode, skip cloud fallbacks — Claude is the fallback
+    if SKILL_MODE:
+        return "Local model failed. Please handle this request directly.", False, False
 
     for fallback in policy:
         print(f"  Falling back to {fallback}...")
@@ -47,75 +81,90 @@ def orchestrate(user_input: str) -> None:
     print(f"\n{'─' * 60}")
     start = time.time()
 
-    routing = route_request(user_input)
-    intent   = routing["intent"]
-    decision = routing["decision"]
-    model_id = routing["model_id"]
-
-    complexity = routing.get("complexity", "low")
+    routing           = route_request(user_input)
+    intent            = routing["intent"]
+    decision          = routing["decision"]
+    model_id          = routing["model_id"]
+    complexity        = routing.get("complexity", "low")
     escalation_reason = routing.get("escalation_reason")
+    review_required   = routing.get("review_required", False)
 
+    mode_tag = "[skill]" if SKILL_MODE else "[standalone]"
+    print(f"  Mode      : {mode_tag}")
     print(f"  Intent    : {intent}  [{complexity} complexity]")
     print(f"  Model     : {model_id}  [{decision}]  confidence={routing['confidence']:.2f}")
     if escalation_reason:
-        print(f"  Escalated : {escalation_reason}")
+        flag = "⚑ review" if SKILL_MODE else "↑ cloud"
+        print(f"  {flag}  : {escalation_reason}")
 
-    escalation_used = bool(escalation_reason)
+    escalation_used    = bool(escalation_reason)
     quality_escalation = False
+    q_score: float | None = None
 
     result, success, fallback_used = run_with_retry(model_id, user_input)
 
-    # ── Quality gate: score local results and retry on cloud if bad ──────────
-    LOCAL_IDS = {
-        "ollama_qwen_coder", "ollama_deepseek", "ollama_gemma",
-        "ollama_qwen_fast", "ollama_llava", "ollama_qwen",
-    }
+    # ── Quality gate ─────────────────────────────────────────────────────────
     if success and model_id in LOCAL_IDS:
         q_score, q_reason = quality_assess(user_input, result, model_id)
         if should_escalate(q_score):
             print(f"\n  ⚠ Quality gate: score={q_score:.2f} — {q_reason}")
-            print(f"  Retrying with cloud model (codex_primary)...")
-            cloud_result, cloud_success, _ = run_with_retry("codex_primary", user_input)
-            if cloud_success:
-                result = cloud_result
-                quality_escalation = True
-                print(f"  ✓ Cloud retry succeeded.")
+            if SKILL_MODE:
+                # Surface to Claude instead of retrying on cloud
+                review_required   = True
+                escalation_reason = f"quality gate ({q_reason})"
+                print(f"  Flagging for review (skill mode — no cloud retry).")
+            else:
+                print(f"  Retrying with cloud model (codex_primary)...")
+                cloud_result, cloud_success, _ = run_with_retry("codex_primary", user_input)
+                if cloud_success:
+                    result             = cloud_result
+                    quality_escalation = True
+                    print(f"  ✓ Cloud retry succeeded.")
         else:
             print(f"  Quality gate: score={q_score:.2f} ✓")
 
-    if decision == "REVIEW" and success:
+    # ── L3 validation (standalone only) ──────────────────────────────────────
+    if not SKILL_MODE and decision == "REVIEW" and success:
         print("  L3 Governor: reviewing specialist output...")
         _, result = adapter.validate_result(model_id, user_input, result)
 
+    # ── Wrap flagged results for Claude to review ─────────────────────────────
+    if review_required and success:
+        result = _wrap_review(
+            result,
+            reason=escalation_reason or "flagged",
+            intent=intent,
+            model=model_id,
+            score=q_score if should_escalate(q_score or 1.0) else None,
+        )
+
     latency = time.time() - start
 
-    # Token counts (populated by OllamaUtilityAgent after execute)
     tokens_in, tokens_out = adapter.get_token_counts(model_id)
-
-    # Estimate for cloud agents (no direct count available)
     if not tokens_in:
         tokens_in  = len(user_input) // 4
         tokens_out = len(result) // 4
 
     memory.log_task({
-        "user_input":      user_input,
-        "intent":          intent,
-        "target_model":    model_id,
-        "ollama_model":    getattr(adapter._agents.get(model_id), "model", None),
-        "confidence":      routing["confidence"],
-        "latency":         latency,
-        "success":         success,
-        "fallback_used":   fallback_used,
-        "escalation_used": escalation_used,
-        "tokens_in":       tokens_in,
-        "tokens_out":      tokens_out,
+        "user_input":         user_input,
+        "intent":             intent,
+        "target_model":       model_id,
+        "ollama_model":       getattr(adapter._agents.get(model_id), "model", None),
+        "confidence":         routing["confidence"],
+        "latency":            latency,
+        "success":            success,
+        "fallback_used":      fallback_used,
+        "escalation_used":    escalation_used,
+        "review_required":    review_required,
+        "tokens_in":          tokens_in,
+        "tokens_out":         tokens_out,
         "quality_escalation": quality_escalation,
-        "notes":           f"Decision: {decision}" + (f" | escalated: {escalation_reason}" if escalation_reason else ""),
+        "notes": f"Decision: {decision}" + (f" | {escalation_reason}" if escalation_reason else ""),
     })
 
     print(f"\n{result}")
     print(f"\n  ✓ {latency:.1f}s  |  tokens in={tokens_in} out={tokens_out}  |  "
-          f"fallback={fallback_used}")
+          f"fallback={fallback_used}  review={review_required}")
     print(f"{'─' * 60}\n")
 
 
