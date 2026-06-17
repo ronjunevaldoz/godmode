@@ -73,5 +73,6 @@ class ProviderAdapter:
     def validate_result(
         self, model_id: str, original_prompt: str, result: str
     ) -> tuple[bool, str]:
+        import asyncio
         validator = self._get_agent("claude_architect")
-        return validator.validate_result(original_prompt, result)
+        return asyncio.run(validator.validate_result_async(original_prompt, result))
