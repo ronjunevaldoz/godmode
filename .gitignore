@@ -43,6 +43,7 @@ Thumbs.db
 
 # Project specific
 memory/task_logs.json
-.claude/
+.claude/*
+!.claude/settings.json
 node_modules/__pycache__/
 *.pyc
