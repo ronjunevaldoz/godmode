@@ -179,5 +179,29 @@ class MetricsEngine:
                 f"  Escalation rate: {m['escalation_frequency']:.1%}",
             ]
 
-        lines.append("")
+        lines += ["", "  " + "─" * 56, _cheer(m), ""]
         return "\n".join(lines)
+
+
+def _cheer(m: dict) -> str:
+    """Return a single-line verdict based on local routing ratio and savings."""
+    t   = m["total_tasks"]
+    lp  = (m["local_tasks"] / t * 100) if t else 0
+    saved = m["saved_vs_opus_usd"]
+    quality_hits = round(m.get("escalation_frequency", 0) * t)
+
+    if lp == 100:
+        return f"  PERFECT  100% local — saved ~${saved:.2f} vs Claude Opus. Keep it up!"
+    if lp >= 80:
+        return f"  WINNING  {lp:.0f}% local — ~${saved:.2f} saved vs Opus. Nice efficiency."
+    if lp >= 50:
+        verdict = f"  NEUTRAL  {lp:.0f}% local, {100-lp:.0f}% cloud — ${saved:.2f} saved."
+        if quality_hits:
+            verdict += f" ({quality_hits} quality escalation{'s' if quality_hits > 1 else ''} — consider a bigger local model)"
+        return verdict
+    if lp > 0:
+        return (
+            f"  WARNING  Only {lp:.0f}% local — most tokens are hitting the cloud. "
+            f"Run 'preset recommend' to improve routing."
+        )
+    return "  IN THE RED  0% local — all requests went to cloud. Check Ollama is running."
