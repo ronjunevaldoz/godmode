@@ -7,28 +7,22 @@ description: Local-first AI routing runtime. Routes prompts to the best model (O
 
 ## How to invoke
 
-Before running any godmode command, resolve the CLI path:
+Before running any godmode command, resolve the CLI path dynamically:
 
 ```bash
-# Resolve godmode_cli.py — checks env var, current dir, and common install locations
-GODMODE_CLI=$(python3 -c "
-import os, sys
-candidates = [
-    os.environ.get('GODMODE_PATH', ''),
-    'godmode_cli.py',
-    os.path.expanduser('~/godmode/godmode_cli.py'),
-    os.path.expanduser('~/Documents/godmode/godmode_cli.py'),
-    os.path.expanduser('~/projects/godmode/godmode_cli.py'),
-    os.path.expanduser('~/dev/godmode/godmode_cli.py'),
-]
-found = next((p for p in candidates if p and os.path.isfile(p)), None)
-print(found or '')
-" 2>/dev/null)
+# 1. Prefer GODMODE_PATH env var (set in shell profile for permanent fix)
+# 2. Fall back to searching the home directory for godmode_cli.py
+GODMODE_CLI="${GODMODE_PATH:-$(find ~ -maxdepth 5 -name 'godmode_cli.py' -not -path '*/__pycache__/*' 2>/dev/null | head -1)}"
 
 if [ -z "$GODMODE_CLI" ]; then
-  echo "godmode not found. Set GODMODE_PATH=/path/to/godmode_cli.py in your environment."
+  echo "godmode not found. Add to your shell profile: export GODMODE_PATH=/path/to/godmode_cli.py"
   exit 1
 fi
+```
+
+**Permanent fix** — add to `~/.zshrc` or `~/.bashrc` so every session picks it up automatically:
+```bash
+export GODMODE_PATH="$(find ~ -maxdepth 5 -name 'godmode_cli.py' -not -path '*/__pycache__/*' 2>/dev/null | head -1)"
 ```
 
 Then run commands using `$GODMODE_CLI`:
