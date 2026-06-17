@@ -11,52 +11,54 @@ google:
   base_url: https://generativelanguage.googleapis.com/v1beta
 
 ollama:
-  base_url: https://ron-local-home.duckdns.org/ollama
+  base_url: ${OLLAMA_BASE_URL}
   timeout: 300
+  api_key: ${OLLAMA_API_KEY}
 
 # Default model configurations
 models:
   codex_primary:
     model_name: "code-davinci-003"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "openai"
 
-  claude_architect:
-    model_name: "claude-3-sonnet-20240229"
-    temperature: 0.5
-    max_tokens: 4096
-
-  gemini_vision:
-    model_name: "gemini-1.5-pro-latest"
-    temperature: 0.4
-    max_tokens: 2048
-
+  # Ollama models
   ollama_qwen:
     model_name: "qwen2.5-coder:14b"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "ollama"
+    temperature: 0.7
 
   ollama_llama3:
     model_name: "llama3:latest"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "ollama"
+    temperature: 0.7
 
   ollama_gemma4:
     model_name: "gemma4:12b"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "ollama"
+    temperature: 0.7
 
   ollama_qwen3:
     model_name: "qwen3:8b"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "ollama"
+    temperature: 0.7
 
   ollama_qwen3_5:
     model_name: "qwen3.5:4b"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "ollama"
+    temperature: 0.7
 
   ollama_deepseek:
     model_name: "deepseek-r1:14b"
-    temperature: 0.3
-    max_tokens: 2048
+    provider: "ollama"
+    temperature: 0.7
+
+  # Other providers
+  claude:
+    model_name: "claude-3-opus-20240229"
+    provider: "anthropic"
+    temperature: 0.7
+
+  gemini:
+    model_name: "gemini-pro"
+    provider: "google"
+    temperature: 0.7

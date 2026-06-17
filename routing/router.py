@@ -1,13 +1,14 @@
 import json
+import os
 import requests
 from typing import Dict, Any, Tuple
 from .confidence import calculate_confidence
 from .capability_resolver import CapabilityResolver
 from .model_selector import ModelSelector
 
-# Configuration
-OLLAMA_URL = "https://ron-local-home.duckdns.org/ollama/api/chat"
-OLLAMA_MODEL = "llama3"
+# Configuration from environment variables
+OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "https://ron-local-home.duckdns.org/ollama/api/chat")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
 # Granular Intent Hierarchy
 INTENT_CATEGORIES = [

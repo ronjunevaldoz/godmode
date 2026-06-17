@@ -30,6 +30,8 @@ pip install -r requirements.txt
    export OPENAI_API_KEY="your_openai_key"
    export ANTHROPIC_API_KEY="your_anthropic_key" 
    export GOOGLE_API_KEY="your_google_key"
+   export OLLAMA_BASE_URL="https://ron-local-home.duckdns.org/ollama"
+   export OLLAMA_API_KEY="your_ollama_api_key"
    ```
 
 2. **Install Godmode Skills**:
@@ -100,6 +102,18 @@ python main.py
 ```bash
 python main.py --config configs/custom_config.yaml
 ```
+
+## Environment Variables
+
+The system uses the following environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key | Yes |
+| `ANTHROPIC_API_KEY` | Anthropic API key | Yes |
+| `GOOGLE_API_KEY` | Google API key | Yes |
+| `OLLAMA_BASE_URL` | Ollama server URL | Yes |
+| `OLLAMA_API_KEY` | Ollama API key (if required) | No |
 
 ## Contributing
 

@@ -1,0 +1,20 @@
+{
+  "skills": [
+    {
+      "name": "code_generation",
+      "description": "Generate code solutions",
+      "provider": "ollama_qwen"
+    },
+    {
+      "name": "documentation",
+      "description": "Create documentation",
+      "provider": "ollama_llama3"
+    },
+    {
+      "name": "analysis",
+      "description": "Data analysis and insights",
+      "provider": "ollama_gemma4"
+    }
+  ],
+  "default_provider": "ollama_qwen"
+}
