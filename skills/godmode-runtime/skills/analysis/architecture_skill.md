@@ -1,3 +1,8 @@
+---
+name: architecture_skill
+description: Designs and reviews software architectures, scalability patterns, and distributed system tradeoffs
+---
+
 # Architecture Skill
 
 ## Description

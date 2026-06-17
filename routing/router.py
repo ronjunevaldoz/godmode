@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 import requests
 from typing import Dict, Any, Tuple
 from .confidence import calculate_confidence
 from .capability_resolver import CapabilityResolver
 from .model_selector import ModelSelector
+
+logger = logging.getLogger(__name__)
 
 # Configuration from environment variables
 OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "https://ron-local-home.duckdns.org/ollama/api/chat")
@@ -57,7 +60,7 @@ def classify_intent(user_input: str) -> Tuple[str, float]:
 
         return intent, data.get("confidence", 0.0)
     except Exception as e:
-        print(f"Routing error: {e}")
+        logger.error(f"Routing error: {e}")
         return "UNKNOWN", 0.0
 
 def route_request(user_input: str) -> Dict[str, Any]:

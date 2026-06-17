@@ -1,3 +1,8 @@
+---
+name: documentation_skill
+description: Creates technical documentation including API references, user guides, and architecture docs
+---
+
 # Documentation Skill
 
 ## Description

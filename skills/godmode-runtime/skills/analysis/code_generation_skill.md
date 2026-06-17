@@ -1,3 +1,8 @@
+---
+name: code_generation_skill
+description: Generates production-ready code functions, classes, and modules from natural language specifications
+---
+
 # Code Generation Skill
 
 ## Description

@@ -1,3 +1,8 @@
+---
+name: analysis_skill
+description: Performs data analysis, trend identification, and statistical pattern recognition on datasets
+---
+
 # Analysis Skill
 
 ## Description

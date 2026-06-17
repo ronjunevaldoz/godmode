@@ -1,3 +1,8 @@
+---
+name: code_review_skill
+description: Reviews code for bugs, security vulnerabilities, performance issues, and best-practice compliance
+---
+
 # Code Review Skill
 
 ## Description
