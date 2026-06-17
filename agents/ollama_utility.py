@@ -80,7 +80,15 @@ class OllamaUtilityAgent:
     def _build_messages(self, prompt: str, context: dict | None) -> list[dict]:
         messages = [{"role": "system", "content": self._system_prompt}]
         if context and "history" in context:
-            messages.extend(context["history"])
+            history = context["history"]
+            if isinstance(history, list):
+                valid = [
+                    m for m in history
+                    if isinstance(m, dict) and "role" in m and "content" in m
+                ]
+                if len(valid) != len(history):
+                    logger.warning(f"[Ollama] Dropped {len(history) - len(valid)} malformed history entries")
+                messages.extend(valid)
         messages.append({"role": "user", "content": prompt})
         return messages
 

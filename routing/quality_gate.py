@@ -82,15 +82,24 @@ def assess(task: str, response: str, model_id: str) -> tuple[float, str]:
             timeout=45,
         )
         resp.raise_for_status()
-        data = json.loads(resp.json()["message"]["content"])
+        raw = resp.json()["message"]["content"]
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            # Judge returned non-JSON (e.g. "Score: 0.8") — treat as uncertain,
+            # not as a pass, so genuinely bad output isn't silently approved.
+            logger.warning(f"[QualityGate] Judge returned non-JSON: {raw[:120]!r}")
+            return 0.5, "Judge returned non-JSON response"
         score  = float(data.get("score", 0.5))
         reason = str(data.get("reason", ""))
         score  = max(0.0, min(1.0, score))
         logger.info(f"[QualityGate] {model_id} scored {score:.2f} — {reason}")
         return score, reason
+    except json.JSONDecodeError:
+        raise  # already handled above — shouldn't reach here
     except Exception as e:
         logger.warning(f"[QualityGate] Judge call failed ({e}), defaulting to pass")
-        # Fail open: don't penalise the caller if the judge is unreachable
+        # Fail open only for genuine connectivity/timeout failures
         return 1.0, "Judge unavailable — skipping gate"
 
 

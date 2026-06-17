@@ -93,8 +93,12 @@ metrics = MetricsEngine(memory)
 adapter = ProviderAdapter()
 selector = ModelSelector()
 
-with open("configs/fallback_chain.yaml") as f:
-    FALLBACK_CONFIG = yaml.safe_load(f)
+try:
+    with open("configs/fallback_chain.yaml") as f:
+        FALLBACK_CONFIG = yaml.safe_load(f)
+except OSError:
+    FALLBACK_CONFIG = {}
+    print("[main] WARNING: configs/fallback_chain.yaml not found — fallback chains disabled")
 
 LOCAL_IDS: frozenset[str] = frozenset({
     "ollama_qwen_coder", "ollama_deepseek", "ollama_gemma",

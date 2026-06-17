@@ -38,12 +38,19 @@ class SessionManager:
         self._path(name).write_text(json.dumps(messages, indent=2))
 
     def truncate_to_budget(self, messages: list[dict]) -> list[dict]:
-        """Return the most recent messages that fit within MAX_HISTORY_CHARS."""
+        """Return the most recent messages that fit within MAX_HISTORY_CHARS.
+        Individual messages larger than the budget are truncated, not skipped,
+        so the caller always receives at least one turn of context."""
         total = 0
         kept: list[dict] = []
         for msg in reversed(messages):
-            cost = len(msg.get("content", ""))
-            if total + cost > MAX_HISTORY_CHARS and kept:
+            content = msg.get("content", "")
+            cost = len(content)
+            if total + cost > MAX_HISTORY_CHARS:
+                if not kept:
+                    # Single oversized message — truncate it rather than drop it
+                    truncated = {**msg, "content": content[:MAX_HISTORY_CHARS]}
+                    kept.insert(0, truncated)
                 break
             kept.insert(0, msg)
             total += cost

@@ -264,7 +264,7 @@ def cmd_report(_args: list[str]) -> None:
         avg    = sum(scores) / len(scores) if scores else 0.0
         models = {r["model"] for r in runs}
         reasons = [r.get("reason", "") for r in runs]
-        top_reason = max(set(reasons), key=reasons.count) if reasons else "—"
+        top_reason = max(set(reasons), key=reasons.count) if any(reasons) else "—"
 
         print(f"  {intent}")
         print(f"    runs={len(runs)}  avg_score={avg:.2f}  models={', '.join(models)}")
