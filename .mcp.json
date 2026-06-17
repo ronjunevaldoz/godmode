@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "godmode": {
+      "command": "sh",
+      "args": ["-c", "exec python3 \"$(dirname \"$GODMODE_PATH\")/mcp_server.py\""]
+    }
+  }
+}

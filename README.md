@@ -13,7 +13,7 @@
 Route any prompt to the right model. Keep it free. Track every dollar saved.
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-130%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
+[![CI](https://github.com/ronjunevaldoz/godmode/actions/workflows/ci.yml/badge.svg)](https://github.com/ronjunevaldoz/godmode/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-72%25-yellow)](docs/TEST_COVERAGE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Skill](https://img.shields.io/badge/skills.sh-godmode--runtime-8b5cf6?logo=anthropic&logoColor=white)](https://skills.sh/ronjunevaldoz/godmode/godmode-runtime)
@@ -66,6 +66,39 @@ OLLAMA_BASE_URL=https://your-server/ollama   # ✓ base URL only
 OLLAMA_BASE_URL=http://192.168.1.100:11434   # ✓ IP address
 # NOT: https://your-server/ollama/api/chat   # ✗ don't include /api/chat
 ```
+
+---
+
+## Use as an MCP server
+
+Expose godmode as a native Claude tool — no CLI shelling needed. Claude can call `run`, `run_session`, `stats`, and `models` directly from any conversation.
+
+**Requires:** `GODMODE_PATH` set in your shell profile (see below).
+
+The project includes a `.mcp.json` that auto-resolves the server path via `GODMODE_PATH`. Claude Code picks it up automatically when you open the project.
+
+To register it globally (available in all projects):
+
+```bash
+# Add to ~/.claude/settings.json under "mcpServers"
+{
+  "mcpServers": {
+    "godmode": {
+      "command": "sh",
+      "args": ["-c", "exec python3 \"$(dirname \"$GODMODE_PATH\")/mcp_server.py\""]
+    }
+  }
+}
+```
+
+**Available MCP tools:**
+
+| Tool | What it does |
+|------|-------------|
+| `run` | Route and execute a prompt |
+| `run_session` | Route with persistent session history |
+| `stats` | Savings dashboard |
+| `models` | List Ollama model registry |
 
 ---
 
