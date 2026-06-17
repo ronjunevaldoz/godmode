@@ -5,6 +5,29 @@ description: Local-first AI routing runtime. Routes prompts to the best model (O
 
 # Godmode Runtime
 
+## How to invoke
+
+When the user asks you to run something through godmode, or wants to route a task to a local model, execute the CLI directly via Bash:
+
+```bash
+python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py run "the user's prompt"
+```
+
+For multi-turn sessions:
+```bash
+python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py run "prompt" --session <name>
+```
+
+Other useful commands to run on behalf of the user:
+```bash
+python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py stats       # show savings dashboard
+python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py models      # list available models
+python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py session list # list sessions
+```
+
+> **Permission note:** Bash execution of `godmode_cli.py` must be allowed in Claude Code settings.
+> Add this rule: `Bash(python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py *)`
+
 Godmode is a local-first AI routing runtime. It classifies the intent of any prompt, matches required capabilities to a model registry, and executes — preferring free local Ollama models over paid cloud APIs. After every session it shows how much you saved.
 
 ## Setup (first time)
