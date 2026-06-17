@@ -44,4 +44,5 @@ Thumbs.db
 # Project specific
 memory/task_logs.json
 .claude/
-node_modules/
+node_modules/__pycache__/
+*.pyc
