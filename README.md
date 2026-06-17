@@ -13,7 +13,7 @@
 Route any prompt to the right model. Keep it free. Track every dollar saved.
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-121%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/tests-130%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-72%25-yellow)](docs/TEST_COVERAGE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Skill](https://img.shields.io/badge/skills.sh-godmode--runtime-8b5cf6?logo=anthropic&logoColor=white)](https://skills.sh/ronjunevaldoz/godmode/godmode-runtime)
@@ -33,7 +33,7 @@ Your prompt
   ├─ L1 Router   classify intent → resolve capabilities → score + select model
   │              complexity gate: danger keywords escalate before execution
   │
-  ├─ L2 Executor run selected model
+  ├─ L2 Executor run selected model (streams tokens live)
   │              quality gate: judge scores output 0–1  (< 0.55 = flag or retry)
   │
   └─ L3 Governor optional cloud validation for arch / spec tasks
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 # 2. Pull at least one Ollama model
 ollama pull qwen3:8b
 
-# 3. Configure (interactive — detects models, writes .env.local)
+# 3. Configure — interactive wizard detects Ollama, assigns models, writes .env.local
 python3 godmode_cli.py setup
 
 # 4. Run
@@ -59,11 +59,33 @@ python3 godmode_cli.py run "Explain the SOLID principles with examples"
 python3 godmode_cli.py stats
 ```
 
-Or install as a Claude Code skill:
+**Remote Ollama server?** Set the base URL — no path suffix needed:
+```bash
+# In .env.local (created by setup wizard)
+OLLAMA_BASE_URL=https://your-server/ollama   # ✓ base URL only
+OLLAMA_BASE_URL=http://192.168.1.100:11434   # ✓ IP address
+# NOT: https://your-server/ollama/api/chat   # ✗ don't include /api/chat
+```
+
+---
+
+## Install as a Claude Code skill
 
 ```bash
 npx skills add ronjunevaldoz/godmode   # install
 npx skills update godmode-runtime      # update to latest
+```
+
+**Add to your shell profile** so the skill can find the CLI from any session:
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+export GODMODE_PATH="$(find ~ -maxdepth 5 -name 'godmode_cli.py' -not -path '*/__pycache__/*' 2>/dev/null | head -1)"
+```
+Then `source ~/.zshrc` and the skill auto-resolves the path every time.
+
+**Allow the CLI in Claude Code settings** (Settings → Permissions → Add Rule):
+```
+Bash(python3 /your/path/to/godmode_cli.py *)
 ```
 
 ---
@@ -84,7 +106,11 @@ Set via `GODMODE_MODE=skill` or `GODMODE_MODE=standalone` in `.env.local`.
 | Command | What it does |
 |---------|-------------|
 | `setup` | First-run wizard — Ollama URL, model roles, mode |
-| `run "prompt"` | Route and execute a prompt |
+| `run "prompt"` | Route and execute a prompt (streams tokens live) |
+| `run "prompt" --session <name>` | Multi-turn conversation with persistent history |
+| `session list` | List saved sessions |
+| `session show <name>` | Print conversation history |
+| `session clear <name>` | Delete a session |
 | `stats` | Token savings dashboard + verdict |
 | `models` | List pulled Ollama models and assigned roles |
 | `preset list` | RAM-tiered preset matrix |
@@ -119,8 +145,6 @@ Set via `GODMODE_MODE=skill` or `GODMODE_MODE=standalone` in `.env.local`.
   ESTIMATED SAVINGS (local tasks vs cloud alternatives)
   vs Claude Opus  : $2.7630
   vs GPT-4o       : $0.4605
-
-  ──────────────────────────────────────────────────────────
 
   WINNING  90% local — ~$2.76 saved vs Opus. Nice efficiency.
 ```
@@ -171,14 +195,21 @@ python3 godmode_cli.py preset apply 32gb   # or pick a tier directly
 | `configs/model_registry.yaml` | Model metadata, capabilities, cost rates |
 | `routing/intent_map.json` | Intent → capability mappings |
 
-**Key env vars:**
+**Key env vars** (set in `.env.local`):
 
 ```bash
-OLLAMA_BASE_URL=http://localhost:11434   # remote server: https://your-host/ollama
+OLLAMA_BASE_URL=http://localhost:11434   # base URL only — no /api/chat suffix
 OLLAMA_SERVER_RAM_GB=32                 # improves preset auto-selection
 GODMODE_MODE=skill                      # skill | standalone
 ANTHROPIC_API_KEY=...                   # standalone only
 OPENAI_API_KEY=...                      # standalone only
+```
+
+**Shell env vars** (set in `~/.zshrc` or `~/.bashrc`):
+
+```bash
+# Required for the Claude Code skill to find the CLI
+export GODMODE_PATH="$(find ~ -maxdepth 5 -name 'godmode_cli.py' -not -path '*/__pycache__/*' 2>/dev/null | head -1)"
 ```
 
 ---
@@ -194,6 +225,22 @@ Fails open — if the judge is unreachable, the original result passes through.
 
 ---
 
+## Multi-turn sessions
+
+```bash
+python3 godmode_cli.py run "What is the repository pattern?" --session myproject
+python3 godmode_cli.py run "Show me a Python example"        --session myproject
+python3 godmode_cli.py run "Now add error handling"          --session myproject
+
+python3 godmode_cli.py session list              # list all sessions
+python3 godmode_cli.py session show myproject    # view history
+python3 godmode_cli.py session clear myproject   # wipe it
+```
+
+History is budget-trimmed to ~2k tokens per request to avoid overflowing smaller models.
+
+---
+
 ## Testing
 
 ```bash
@@ -202,7 +249,7 @@ python3 godmode_cli.py coverage                     # with coverage report
 python3 -m pytest tests/ -m integration -v         # live Ollama required
 ```
 
-121 tests · 72% line coverage
+130 tests · 72% line coverage
 
 ---
 
@@ -217,11 +264,11 @@ godmode/
 ├── routing/                router · capability_resolver · model_selector
 │                           quality_gate · preset_manager · model_recommender
 ├── metrics/                MetricsEngine — savings + cheer verdict
-├── memory/                 MemoryManager — task log persistence
+├── memory/                 MemoryManager · SessionManager — task log + conversation history
 ├── configs/                model_registry.yaml · model_presets.yaml
 ├── evaluation/             11 routing accuracy test cases
 ├── skills/godmode-runtime/ Claude Code skill wrapper
-└── tests/                  121 tests across 6 files
+└── tests/                  130 tests across 7 files
 ```
 
 ---
