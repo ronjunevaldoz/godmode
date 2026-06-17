@@ -1,126 +1,133 @@
 ---
 name: godmode-runtime
-description: Godmode AI routing runtime — intent hierarchy, agent roles, model registry, and CLI commands for this project
+description: Local-first AI routing runtime. Routes prompts to the best model (Ollama local or cloud) based on intent, capability, and cost. Tracks savings vs Claude Opus. Works inside Claude Desktop with no API keys needed.
 ---
 
 # Godmode Runtime
 
-Godmode is a capability-centric AI routing runtime. It classifies intent, resolves required capabilities, and selects the optimal model from a registry — routing to the right specialist automatically.
+Godmode is a local-first AI routing runtime. It classifies the intent of any prompt, matches required capabilities to a model registry, and executes — preferring free local Ollama models over paid cloud APIs. After every session it shows how much you saved.
 
-## Architecture
+## Setup (first time)
+
+```bash
+git clone https://github.com/ronjunevaldoz/godmode.git
+cd godmode
+pip install -r requirements.txt
+python3 godmode_cli.py setup   # interactive wizard — detects Ollama, assigns models
+```
+
+The wizard will:
+1. Ask for your Ollama URL (default: `http://localhost:11434`)
+2. List all pulled models and let you assign each to a role
+3. Pick operating mode (`skill` for Claude Desktop, `standalone` for independent use)
+4. Write `.env.local` and patch `configs/model_registry.yaml`
+
+## Running prompts
+
+```bash
+python3 godmode_cli.py run "Fix the null pointer in the payment handler"
+python3 godmode_cli.py run "Summarise this log file and find anomalies"
+python3 godmode_cli.py run "Design a microservices auth architecture"
+```
+
+Each run prints the routed model, mode tag (`[SKILL]` / `[STANDALONE]`), and the result. High-stakes tasks (bug fixes, security reviews) are wrapped in a `NEEDS REVIEW` block in skill mode.
+
+## All commands
+
+```bash
+python3 godmode_cli.py setup              # First-run wizard
+python3 godmode_cli.py run "prompt"       # Route and execute
+python3 godmode_cli.py stats              # Savings dashboard + verdict
+python3 godmode_cli.py models             # List Ollama models and assigned roles
+python3 godmode_cli.py preset list        # RAM-tiered preset matrix
+python3 godmode_cli.py preset apply auto  # Auto-select preset from server RAM
+python3 godmode_cli.py recommend          # Score pulled models, suggest registry changes
+python3 godmode_cli.py recommend --apply  # Apply recommendations
+python3 godmode_cli.py eval               # Routing accuracy evaluation (11 cases)
+python3 godmode_cli.py clear              # Reset task memory
+python3 godmode_cli.py coverage           # Test suite with coverage report
+```
+
+## Operating modes
+
+| Mode | How to set | Behaviour |
+|------|-----------|-----------|
+| `skill` *(default)* | `GODMODE_MODE=skill` | Runs inside Claude Desktop. No cloud API keys needed. High-stakes results flagged `NEEDS REVIEW`. |
+| `standalone` | `GODMODE_MODE=standalone` | Runs independently. Low-quality/high-stakes results escalate to cloud automatically. |
+
+## Routing pipeline
 
 ```
-User Prompt → Triage (Ollama/local) → Intent → Capabilities → Model Registry → Agent
+Your prompt
+  → L1 Router   classify intent (via Ollama triage model)
+               resolve capabilities from intent_map.json
+               score + select model from model_registry.yaml
+               apply complexity gate (danger keywords → escalate)
+  → L2 Executor run selected model
+               quality gate: judge scores output 0–1
+               < 0.55 → flag (skill) or retry cloud (standalone)
+  → L3 Governor optional cloud validation for arch/spec tasks
 ```
 
-For full scoring detail see [routing_pipeline.md](references/routing_pipeline.md).
+## Intent categories
 
-### Agent Tiers
+| Intent prefix | Routes to | Example |
+|---|---|---|
+| `Utility.*` | local fast model | summarise, classify, extract |
+| `Improve.Code` / `Review.Code` | local code model | refactor, review PR |
+| `Fix.Bug` / `Review.Security` | cloud or flagged | security audit, crash fix |
+| `Architecture.*` | cloud or flagged | system design, ADR |
+| `Multimodal.*` | vision model | UI screenshot analysis |
 
-| Tier | Agent | Model | Role |
-|------|-------|-------|------|
-| L2 | `OllamaUtilityAgent` | qwen2.5-coder:14b (local) | Cheap, repetitive, local-first tasks |
-| L2 | `CodexEngineerAgent` | gpt-4o | Implementation-heavy code tasks |
-| L2 | `GeminiVisionAgent` | gemini-2.5-pro | Multimodal / UI tasks |
-| L3 | `ClaudeArchitectAgent` | claude-opus-4-8 | Reasoning, architecture, final validation |
+## Stats & savings
 
-L3 is also the safety-net escalation path when confidence is low or intent is `Architecture.*` / `Review.*`.
+```bash
+python3 godmode_cli.py stats
+```
 
-For full agent contracts see [agent_roles.md](references/agent_roles.md).
+Shows token usage, per-model breakdown, estimated savings vs Claude Opus and GPT-4o, and a verdict:
 
-## Intent Hierarchy
+```
+  PERFECT   100% local — saved ~$1.24 vs Claude Opus. Keep it up!
+  WINNING   82% local — ~$0.91 saved. Nice efficiency.
+  NEUTRAL   55% local, 45% cloud — $0.43 saved.
+  WARNING   Only 20% local — run 'preset apply auto' to improve.
+  IN THE RED  0% local — check Ollama is running.
+```
 
-Intents follow `Category.Subcategory`:
+## Model presets by RAM
 
-- `Implementation.*` — Android, KMP, JNI, Backend, DevOps, Web → `codex_primary`
-- `Architecture.*` — System, Mobile, Agent → `claude_architect` (hard-routed)
-- `Multimodal.*` — UI, Image → `gemini_vision`
-- `Utility.*` — Summary, Classification, Extraction → `ollama_qwen` (local-first)
-- `Documentation.*` — Spec, Markdown → `claude_architect`
-- `Review.*` — Code, Architecture → `claude_architect` (hard-routed)
-- `UNKNOWN` — Escalates to `claude_architect`
+```bash
+python3 godmode_cli.py preset apply auto   # auto-detect server RAM and apply best tier
+```
 
-## Key Files
+| Tier | Min RAM | Models |
+|------|---------|--------|
+| `6gb` | 5 GB | 1B–3B class |
+| `8gb` | 7 GB | 7B class |
+| `16gb` | 14 GB | 14B class |
+| `32gb` | 28 GB | 30B class |
+| `64gb` | 56 GB | 70B+ |
+
+## Key config files
 
 | File | Purpose |
 |------|---------|
-| `configs/model_registry.yaml` | Model metadata, capabilities, cost/latency tiers |
+| `.env.local` | Your personal env vars — Ollama URL, API keys (gitignored) |
+| `configs/model_registry.yaml` | Model metadata, capabilities, cost rates |
 | `routing/intent_map.json` | Intent → capability mappings |
-| `routing/router.py` | Main routing pipeline |
-| `routing/capability_resolver.py` | Intent → capabilities |
-| `routing/model_selector.py` | Capability → model scoring |
-| `agents/base/agent_base.py` | Abstract base for API-backed agents |
 
-For model-by-model registry detail see [model_registry.md](references/model_registry.md).
+## Environment variables
 
-## CLI Commands
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Point to remote server if Ollama isn't local |
+| `OLLAMA_SERVER_RAM_GB` | auto-detected | Set for accurate preset recommendations |
+| `GODMODE_MODE` | `skill` | `skill` or `standalone` |
+| `ANTHROPIC_API_KEY` | — | Only needed in `standalone` mode |
+| `OPENAI_API_KEY` | — | Only needed in `standalone` mode |
+| `GOOGLE_API_KEY` | — | Optional — Gemini vision model |
 
-```bash
-python3 godmode_cli.py run "your prompt"   # Route and execute
-python3 godmode_cli.py stats               # Token usage and metrics
-python3 godmode_cli.py eval                # Run routing accuracy evaluation
-python3 godmode_cli.py clear               # Reset memory
-```
+## Source
 
-## Scripts
-
-Run these before or after sessions to catch config drift early:
-
-```bash
-# Pre-flight: validate API keys, Ollama, and config files
-python3 skills/godmode-runtime/scripts/health_check.py
-
-# Cross-check registry vs intent map for capability coverage gaps
-python3 skills/godmode-runtime/scripts/validate_registry.py
-
-# Run the routing evaluation suite
-bash skills/godmode-runtime/scripts/run_eval.sh
-```
-
-## Hooks
-
-Hooks run automatically via Claude Code's `settings.json`. Add these to `.claude/settings.json` to make health checks and registry validation part of every session:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 skills/godmode-runtime/scripts/health_check.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 skills/godmode-runtime/scripts/validate_registry.py"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**`PreToolUse` on Bash** — runs `health_check.py` before any shell command; surfaces missing keys or unreachable Ollama before the first `godmode_cli.py run`.
-
-**`PostToolUse` on Edit/Write** — runs `validate_registry.py` whenever `model_registry.yaml` or `intent_map.json` is edited; catches capability drift immediately.
-
-To register hooks without editing JSON manually, use the `update-config` skill.
-
-## Environment Variables
-
-| Variable | Required By |
-|----------|------------|
-| `ANTHROPIC_API_KEY` | `ClaudeArchitectAgent` |
-| `OPENAI_API_KEY` | `CodexEngineerAgent` |
-| `GOOGLE_API_KEY` | `GeminiVisionAgent` |
-| `OLLAMA_BASE_URL` | `OllamaUtilityAgent` (defaults to `http://localhost:11434/api/chat`) |
+https://github.com/ronjunevaldoz/godmode
