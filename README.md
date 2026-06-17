@@ -1,9 +1,42 @@
-# Godmode
-
-**Local-first AI routing runtime.** Classifies your prompt's intent, picks the right model from a registry, and runs it — preferring free local (Ollama) models over paid cloud APIs. Shows you exactly how much you saved.
+<div align="center">
 
 ```
-Your prompt → Triage (Ollama) → Intent → Capabilities → Model Registry → Agent → Result
+  ██████╗  ██████╗ ██████╗ ███╗   ███╗ ██████╗ ██████╗ ███████╗
+ ██╔════╝ ██╔═══██╗██╔══██╗████╗ ████║██╔═══██╗██╔══██╗██╔════╝
+ ██║  ███╗██║   ██║██║  ██║██╔████╔██║██║   ██║██║  ██║█████╗
+ ██║   ██║██║   ██║██║  ██║██║╚██╔╝██║██║   ██║██║  ██║██╔══╝
+ ╚██████╔╝╚██████╔╝██████╔╝██║ ╚═╝ ██║╚██████╔╝██████╔╝███████╗
+  ╚═════╝  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
+```
+
+**Local-first AI routing runtime.**  
+Route any prompt to the right model. Keep it free. Track every dollar saved.
+
+[![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-121%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-72%25-yellow)](docs/TEST_COVERAGE.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Skill](https://img.shields.io/badge/skills.sh-godmode--runtime-8b5cf6?logo=anthropic&logoColor=white)](https://skills.sh/ronjunevaldoz/godmode/godmode-runtime)
+[![Local First](https://img.shields.io/badge/local--first-Ollama-f97316?logo=ollama&logoColor=white)](https://ollama.com)
+
+</div>
+
+---
+
+## What it does
+
+Godmode sits between you and your models. Every prompt is classified, routed to the most capable (and cheapest) model available, and executed. Local Ollama models handle most of the work for free — cloud APIs only kick in for high-stakes tasks that need them.
+
+```
+Your prompt
+  │
+  ├─ L1 Router   classify intent → resolve capabilities → score + select model
+  │              complexity gate: danger keywords escalate before execution
+  │
+  ├─ L2 Executor run selected model
+  │              quality gate: judge scores output 0–1  (< 0.55 = flag or retry)
+  │
+  └─ L3 Governor optional cloud validation for arch / spec tasks
 ```
 
 ---
@@ -11,172 +44,164 @@ Your prompt → Triage (Ollama) → Intent → Capabilities → Model Registry �
 ## Quickstart
 
 ```bash
-# 1. Install dependencies
+# 1. Clone and install
+git clone https://github.com/ronjunevaldoz/godmode.git && cd godmode
 pip install -r requirements.txt
 
-# 2. Install and start Ollama  →  https://ollama.com/download
-#    Pull at least one model:
+# 2. Pull at least one Ollama model
 ollama pull qwen3:8b
 
-# 3. Run the setup wizard (configures your Ollama URL and assigns models to roles)
+# 3. Configure (interactive — detects models, writes .env.local)
 python3 godmode_cli.py setup
 
-# 4. Run your first prompt
-python3 godmode_cli.py run "Summarise the key ideas behind clean architecture"
-
-# 5. See your savings
+# 4. Run
+python3 godmode_cli.py run "Explain the SOLID principles with examples"
 python3 godmode_cli.py stats
+```
+
+Or install as a Claude Code skill:
+
+```bash
+npx skills add ronjunevaldoz/godmode
 ```
 
 ---
 
-## Operating Modes
+## Operating modes
 
-| Mode | Set via | Behaviour |
-|------|---------|-----------|
-| `skill` *(default)* | `GODMODE_MODE=skill` | Runs inside Claude Desktop. No cloud keys needed. High-stakes results are flagged `NEEDS REVIEW` instead of escalating to a paid API. |
-| `standalone` | `GODMODE_MODE=standalone` | Runs independently. Low-quality or high-stakes results auto-escalate to cloud models (requires API keys). |
+| Mode | When to use | Cloud keys needed |
+|------|-------------|-------------------|
+| `skill` *(default)* | Running inside Claude Desktop | No — Claude is the reviewer |
+| `standalone` | Running independently | Yes — for auto cloud escalation |
+
+Set via `GODMODE_MODE=skill` or `GODMODE_MODE=standalone` in `.env.local`.
 
 ---
 
-## All Commands
+## Commands
+
+| Command | What it does |
+|---------|-------------|
+| `setup` | First-run wizard — Ollama URL, model roles, mode |
+| `run "prompt"` | Route and execute a prompt |
+| `stats` | Token savings dashboard + verdict |
+| `models` | List pulled Ollama models and assigned roles |
+| `preset list` | RAM-tiered preset matrix |
+| `preset apply auto` | Auto-detect server RAM, apply best preset |
+| `recommend` | Score pulled models, suggest registry changes |
+| `recommend --apply` | Apply recommendations to registry |
+| `eval` | Routing accuracy evaluation (11 cases) |
+| `clear` | Reset task memory |
+| `coverage` | Test suite with line coverage |
+
+---
+
+## Savings dashboard
+
+```
+╔══════════════════════════════════════════════════════════╗
+║            Godmode Token Savings Dashboard               ║
+╚══════════════════════════════════════════════════════════╝
+
+  Total Requests :  42
+
+  LOCAL  (free)    38 requests  90.5%
+    ├─ qwen3:8b                 21 runs   fast assistant · classification
+    ├─ qwen3-coder:30b          12 runs   code review · bug fix · unit tests
+    └─ deepseek-r1:14b           5 runs   audit · security · prompt quality
+  Tokens processed : ~184,200   Cost: $0.00
+
+  CLOUD  (paid)     4 requests   9.5%
+  Tokens processed : ~8,400   Cost: $0.0063
+
+  ──────────────────────────────────────────────────────────
+  ESTIMATED SAVINGS (local tasks vs cloud alternatives)
+  vs Claude Opus  : $2.7630
+  vs GPT-4o       : $0.4605
+
+  ──────────────────────────────────────────────────────────
+
+  WINNING  90% local — ~$2.76 saved vs Opus. Nice efficiency.
+```
+
+Verdicts: `PERFECT` · `WINNING` · `NEUTRAL` · `WARNING` · `IN THE RED`
+
+---
+
+## Model roles
+
+| Role | Default model | Used for |
+|------|--------------|---------|
+| `ollama_qwen_coder` | `qwen3-coder:30b` | Code review, bug fix, tests |
+| `ollama_deepseek` | `deepseek-r1:14b` | Security audit, deep reasoning |
+| `ollama_gemma` | `gemma4:12b` | Research, docs, analysis |
+| `ollama_qwen_fast` | `qwen3:8b` | Fast tasks, classification, triage |
+| `ollama_llava` | `llava:latest` | Vision, UI screenshots |
+| `codex_primary` | `gpt-4o` | Cloud code (standalone only) |
+| `claude_architect` | `claude-opus-4-8` | Cloud reasoning (standalone only) |
+
+Swap any model: `python3 godmode_cli.py preset apply auto` picks the best set for your server's RAM.
+
+---
+
+## RAM presets
+
+| Tier | Min RAM | Model class |
+|------|---------|-------------|
+| `6gb` | 5 GB | 1B–3B |
+| `8gb` | 7 GB | 7B |
+| `16gb` | 14 GB | 14B |
+| `32gb` | 28 GB | 30B |
+| `64gb` | 56 GB | 70B+ |
 
 ```bash
-python3 godmode_cli.py setup              # First-run wizard — configure Ollama + assign models
-python3 godmode_cli.py run "prompt"       # Route and execute a prompt
-python3 godmode_cli.py stats              # Token savings dashboard + verdict
-python3 godmode_cli.py models             # List pulled Ollama models and their assigned roles
-python3 godmode_cli.py preset list        # Show RAM-tiered model preset matrix
-python3 godmode_cli.py preset apply auto  # Auto-select and apply the best preset for your server
-python3 godmode_cli.py recommend          # Score all pulled models and suggest registry changes
-python3 godmode_cli.py recommend --apply  # Apply those suggestions
-python3 godmode_cli.py eval               # Run routing accuracy evaluation (11 test cases)
-python3 godmode_cli.py clear              # Reset task memory / logs
-python3 godmode_cli.py coverage           # Run test suite with line coverage report
+python3 godmode_cli.py preset apply auto   # auto-selects based on server RAM
+python3 godmode_cli.py preset apply 32gb   # or pick a tier directly
 ```
 
 ---
 
 ## Configuration
 
-All config lives in plain files — no UI required.
-
 | File | Purpose |
 |------|---------|
-| `.env.local` | Your personal env vars (gitignored). Created by `setup`. |
-| `.env.example` | Template — copy to `.env.local` and fill in. |
-| `configs/model_registry.yaml` | Model metadata, capabilities, cost rates. |
-| `routing/intent_map.json` | Intent → capability mappings. |
+| `.env.local` | Personal env vars — gitignored, created by `setup` |
+| `.env.example` | Template to copy |
+| `configs/model_registry.yaml` | Model metadata, capabilities, cost rates |
+| `routing/intent_map.json` | Intent → capability mappings |
 
-### Environment Variables
-
-| Variable | Default | Required |
-|----------|---------|----------|
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | For Ollama routing |
-| `OLLAMA_SERVER_RAM_GB` | auto-detected | Improves preset recommendations |
-| `GODMODE_MODE` | `skill` | `skill` or `standalone` |
-| `ANTHROPIC_API_KEY` | — | Only in `standalone` mode |
-| `OPENAI_API_KEY` | — | Only in `standalone` mode |
-| `GOOGLE_API_KEY` | — | Optional (Gemini vision) |
-
----
-
-## Architecture
-
-### Routing pipeline
-
-```
-L1 Router  — Ollama classifies intent (e.g. Fix.Bug, Architecture.Agent)
-           — Resolves required capabilities from intent_map.json
-           — Scores models in registry against those capabilities
-           — Applies complexity gate (danger keywords → escalate)
-
-L2 Executor — Runs the selected model
-            — Quality gate: judge model scores output 0–1
-            — Score < 0.55 → flag for review (skill mode) or retry cloud (standalone)
-
-L3 Governor — Optional cloud validation for architecture/spec tasks (standalone only)
-```
-
-### Model roles (defaults)
-
-| Registry key | Default model | Role |
-|---|---|---|
-| `ollama_qwen_coder` | `qwen3-coder:30b` | Code review, bug fix, tests |
-| `ollama_deepseek` | `deepseek-r1:14b` | Security audit, deep reasoning |
-| `ollama_gemma` | `gemma4:12b` | Research, docs, analysis |
-| `ollama_qwen_fast` | `qwen3:8b` | Fast assistant, classification, triage |
-| `ollama_llava` | `llava:latest` | Vision, UI screenshots |
-| `codex_primary` | `gpt-4o` | Cloud code tasks (standalone) |
-| `claude_architect` | `claude-opus-4-8` | Cloud reasoning/architecture (standalone) |
-
-Change any model: edit `configs/model_registry.yaml` or run `preset apply auto`.
-
----
-
-## RAM presets
-
-Pick a preset that fits your Ollama server:
+**Key env vars:**
 
 ```bash
-python3 godmode_cli.py preset list          # see all tiers
-python3 godmode_cli.py preset apply auto    # auto-detect and apply
-python3 godmode_cli.py preset apply 16gb    # apply a specific tier
+OLLAMA_BASE_URL=http://localhost:11434   # remote server: https://your-host/ollama
+OLLAMA_SERVER_RAM_GB=32                 # improves preset auto-selection
+GODMODE_MODE=skill                      # skill | standalone
+ANTHROPIC_API_KEY=...                   # standalone only
+OPENAI_API_KEY=...                      # standalone only
 ```
-
-| Tier | Min RAM | Best for |
-|------|---------|----------|
-| `6gb` | 5 GB | Entry — lightweight models only |
-| `8gb` | 7 GB | Standard — 7B class models |
-| `16gb` | 14 GB | Mid-range — 14B class |
-| `32gb` | 28 GB | High-end — 30B class |
-| `64gb` | 56 GB | Workstation — 70B+ |
 
 ---
 
 ## Quality gate
 
-After every local model response, a judge model (`qwen3:8b`) scores the output 0–1. If the score falls below **0.55**:
+Every local response is scored 0–1 by a judge model (`qwen3:8b`). Score < **0.55**:
 
-- **Skill mode** — result is wrapped in a `NEEDS REVIEW` block and logged for manual review.
-- **Standalone mode** — request is retried on the cloud fallback chain.
+- **Skill mode** → result wrapped in `⚠ NEEDS REVIEW` block, flagged in memory
+- **Standalone mode** → retried on cloud fallback chain
 
-The gate fails open: if the judge is unreachable the original result is returned unchanged.
-
----
-
-## Stats dashboard
-
-```bash
-python3 godmode_cli.py stats
-```
-
-Shows token usage, per-model breakdown, cost savings vs Claude Opus and GPT-4o, and a verdict:
-
-```
-  PERFECT   100% local — saved ~$1.24 vs Claude Opus. Keep it up!
-  WINNING   82% local — ~$0.91 saved vs Opus. Nice efficiency.
-  NEUTRAL   55% local, 45% cloud — $0.43 saved.
-  WARNING   Only 20% local — most tokens are hitting the cloud.
-  IN THE RED  0% local — all requests went to cloud.
-```
+Fails open — if the judge is unreachable, the original result passes through.
 
 ---
 
 ## Testing
 
 ```bash
-# Fast (no Ollama needed)
-python3 -m pytest tests/ -m "not integration" -q
-
-# With coverage
-python3 godmode_cli.py coverage
-
-# Live integration tests (Ollama must be running)
-python3 -m pytest tests/ -m integration -v
+python3 -m pytest tests/ -m "not integration" -q   # fast, no Ollama needed
+python3 godmode_cli.py coverage                     # with coverage report
+python3 -m pytest tests/ -m integration -v         # live Ollama required
 ```
 
-121 tests · 72% line coverage (remaining gaps require live API keys or Ollama).
+121 tests · 72% line coverage
 
 ---
 
@@ -184,22 +209,22 @@ python3 -m pytest tests/ -m integration -v
 
 ```
 godmode/
-  godmode_cli.py          # CLI entry point
-  setup_wizard.py         # First-run setup
-  main.py                 # orchestrate() — the core execution loop
-  agents/                 # OllamaUtilityAgent, CodexEngineerAgent, ClaudeArchitectAgent, GeminiVisionAgent
-  routing/                # router, capability_resolver, model_selector, quality_gate, preset_manager, model_recommender
-  metrics/                # MetricsEngine — savings calculations + cheer verdict
-  memory/                 # MemoryManager — task log persistence
-  configs/                # model_registry.yaml, model_presets.yaml, api_config.yaml
-  evaluation/             # run_routing_eval.py + routing_cases.json (11 cases)
-  skills/godmode-runtime/ # Claude Code skill wrapper (SKILL.md, health_check, validate_registry)
-  tests/                  # 121 tests across 6 files
-  docs/                   # TEST_COVERAGE.md, system_overview.md
+├── godmode_cli.py          CLI entry point + all commands
+├── setup_wizard.py         Interactive first-run setup
+├── main.py                 orchestrate() — core execution loop
+├── agents/                 OllamaUtilityAgent · CodexEngineer · ClaudeArchitect · GeminiVision
+├── routing/                router · capability_resolver · model_selector
+│                           quality_gate · preset_manager · model_recommender
+├── metrics/                MetricsEngine — savings + cheer verdict
+├── memory/                 MemoryManager — task log persistence
+├── configs/                model_registry.yaml · model_presets.yaml
+├── evaluation/             11 routing accuracy test cases
+├── skills/godmode-runtime/ Claude Code skill wrapper
+└── tests/                  121 tests across 6 files
 ```
 
 ---
 
 ## License
 
-MIT
+MIT — [ronjunevaldoz/godmode](https://github.com/ronjunevaldoz/godmode)
