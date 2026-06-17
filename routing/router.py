@@ -6,7 +6,7 @@ from .capability_resolver import CapabilityResolver
 from .model_selector import ModelSelector
 
 # Configuration
-OLLAMA_URL = "http://localhost:11434/api/chat"
+OLLAMA_URL = "https://ron-local-home.duckdns.org/ollama/api/chat"
 OLLAMA_MODEL = "llama3"
 
 # Granular Intent Hierarchy
