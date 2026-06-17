@@ -41,6 +41,11 @@ virtualenv/
 .DS_Store
 Thumbs.db
 
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
 # Project specific
 memory/task_logs.json
 .claude/*

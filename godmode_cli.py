@@ -5,6 +5,14 @@ import json
 import sys
 from pathlib import Path
 
+# Load .env.local then .env (first found wins per key)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent / ".env.local", override=False)
+    load_dotenv(Path(__file__).parent / ".env", override=False)
+except ImportError:
+    pass
+
 
 def cmd_run(args: list[str]) -> None:
     if not args:
