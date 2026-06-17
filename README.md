@@ -62,7 +62,8 @@ python3 godmode_cli.py stats
 Or install as a Claude Code skill:
 
 ```bash
-npx skills add ronjunevaldoz/godmode
+npx skills add ronjunevaldoz/godmode   # install
+npx skills update godmode-runtime      # update to latest
 ```
 
 ---
