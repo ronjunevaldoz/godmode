@@ -15,11 +15,19 @@ except ImportError:
 
 
 def cmd_run(args: list[str]) -> None:
+    session: str | None = None
+    if "--session" in args:
+        idx = args.index("--session")
+        if idx + 1 >= len(args):
+            print("Usage: godmode_cli.py run 'prompt' --session <name>")
+            sys.exit(1)
+        session = args[idx + 1]
+        args = args[:idx] + args[idx + 2:]
     if not args:
-        print("Usage: python3 godmode_cli.py run 'your prompt'")
+        print("Usage: python3 godmode_cli.py run 'your prompt' [--session <name>]")
         sys.exit(1)
     from main import orchestrate
-    orchestrate(" ".join(args))
+    orchestrate(" ".join(args), session=session)
 
 
 def cmd_stats(_args: list[str]) -> None:
@@ -141,6 +149,56 @@ def cmd_recommend(args: list[str]) -> None:
             print()
 
 
+def cmd_session(args: list[str]) -> None:
+    """
+    Manage multi-turn conversation sessions.
+      session list              — list all saved sessions
+      session show <name>       — print full history for a session
+      session clear <name>      — delete a session
+    """
+    from memory.session_manager import SessionManager
+    sm = SessionManager()
+    sub = args[0] if args else "list"
+
+    if sub == "list":
+        sessions = sm.list_sessions()
+        if not sessions:
+            print("\n  No sessions yet. Start one with:  run 'prompt' --session <name>\n")
+            return
+        print(f"\n  {'Session':<24} Turns")
+        print("  " + "─" * 36)
+        for name in sessions:
+            print(f"  {name:<24} {sm.turn_count(name)}")
+        print()
+
+    elif sub == "show":
+        if len(args) < 2:
+            print("Usage: godmode_cli.py session show <name>")
+            return
+        name = args[1]
+        history = sm.load(name)
+        if not history:
+            print(f"  Session {name!r} not found or empty.")
+            return
+        print(f"\n  Session: {name!r}\n")
+        for msg in history:
+            role = msg["role"].upper()
+            print(f"  [{role}]\n  {msg['content']}\n")
+
+    elif sub == "clear":
+        if len(args) < 2:
+            print("Usage: godmode_cli.py session clear <name>")
+            return
+        name = args[1]
+        if sm.clear(name):
+            print(f"  ✓ Session {name!r} cleared.")
+        else:
+            print(f"  Session {name!r} not found.")
+
+    else:
+        print(f"Unknown subcommand '{sub}'. Use: list | show <name> | clear <name>")
+
+
 def cmd_setup(_args: list[str]) -> None:
     """Interactive first-run setup wizard."""
     from setup_wizard import run
@@ -173,7 +231,8 @@ def cmd_models(_args: list[str]) -> None:
 
 COMMANDS = {
     "setup":     (cmd_setup,     "First-run setup wizard — configure Ollama and assign models"),
-    "run":       (cmd_run,       "Route and execute a prompt"),
+    "run":       (cmd_run,       "Route and execute a prompt  [--session <name> for multi-turn]"),
+    "session":   (cmd_session,   "Manage conversation sessions  [list|show <name>|clear <name>]"),
     "stats":     (cmd_stats,     "Token savings and routing dashboard"),
     "eval":      (cmd_eval,      "Run routing accuracy evaluation"),
     "clear":     (cmd_clear,     "Reset memory / task logs"),

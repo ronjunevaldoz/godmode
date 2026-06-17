@@ -49,14 +49,14 @@ def _wrap_review(result: str, reason: str, intent: str, model: str, score: float
     )
 
 
-def run_with_retry(model_id: str, prompt: str, context: dict | None = None) -> Tuple[str, bool, bool]:
+def run_with_retry(model_id: str, prompt: str, context: dict | None = None, stream: bool = False) -> Tuple[str, bool, bool]:
     policy = selector.get_fallback_chain(model_id)
     retries = 0 if model_id.startswith("ollama") else 1
     fallback_used = False
 
     for attempt in range(retries + 1):
         try:
-            result = adapter.execute(model_id, prompt, context)
+            result = adapter.execute(model_id, prompt, context, stream=stream)
             return result, True, fallback_used
         except Exception as e:
             print(f"  Attempt {attempt + 1} failed for {model_id}: {e}")
@@ -77,9 +77,22 @@ def run_with_retry(model_id: str, prompt: str, context: dict | None = None) -> T
     return "All attempts and fallbacks failed.", False, fallback_used
 
 
-def orchestrate(user_input: str) -> None:
+def orchestrate(user_input: str, session: str | None = None) -> None:
     print(f"\n{'─' * 60}")
     start = time.time()
+
+    # ── Session history ───────────────────────────────────────────────────────
+    context: dict = {}
+    sm = None
+    if session:
+        from memory.session_manager import SessionManager
+        sm = SessionManager()
+        history = sm.truncate_to_budget(sm.load(session))
+        if history:
+            context["history"] = history
+            print(f"  Session   : {session!r}  ({sm.turn_count(session)} prior turn(s))")
+        else:
+            print(f"  Session   : {session!r}  (new)")
 
     routing           = route_request(user_input)
     intent            = routing["intent"]
@@ -101,7 +114,13 @@ def orchestrate(user_input: str) -> None:
     quality_escalation = False
     q_score: float | None = None
 
-    result, success, fallback_used = run_with_retry(model_id, user_input)
+    # Stream local responses unless we know upfront the result will be wrapped
+    should_stream = model_id in LOCAL_IDS and not review_required
+    if should_stream:
+        print(f"{'─' * 60}")
+
+    result, success, fallback_used = run_with_retry(model_id, user_input, context or None, stream=should_stream)
+    raw_result = result   # preserve unwrapped text for session history
 
     # ── Quality gate ─────────────────────────────────────────────────────────
     if success and model_id in LOCAL_IDS:
@@ -109,7 +128,6 @@ def orchestrate(user_input: str) -> None:
         if should_escalate(q_score):
             print(f"\n  ⚠ Quality gate: score={q_score:.2f} — {q_reason}")
             if SKILL_MODE:
-                # Surface to Claude instead of retrying on cloud
                 review_required   = True
                 escalation_reason = f"quality gate ({q_reason})"
                 print(f"  Flagging for review (skill mode — no cloud retry).")
@@ -118,6 +136,7 @@ def orchestrate(user_input: str) -> None:
                 cloud_result, cloud_success, _ = run_with_retry("codex_primary", user_input)
                 if cloud_success:
                     result             = cloud_result
+                    raw_result         = cloud_result
                     quality_escalation = True
                     print(f"  ✓ Cloud retry succeeded.")
         else:
@@ -127,6 +146,7 @@ def orchestrate(user_input: str) -> None:
     if not SKILL_MODE and decision == "REVIEW" and success:
         print("  L3 Governor: reviewing specialist output...")
         _, result = adapter.validate_result(model_id, user_input, result)
+        raw_result = result
 
     # ── Wrap flagged results for Claude to review ─────────────────────────────
     if review_required and success:
@@ -159,10 +179,22 @@ def orchestrate(user_input: str) -> None:
         "tokens_in":          tokens_in,
         "tokens_out":         tokens_out,
         "quality_escalation": quality_escalation,
+        "session":            session,
         "notes": f"Decision: {decision}" + (f" | {escalation_reason}" if escalation_reason else ""),
     })
 
-    print(f"\n{result}")
+    # ── Persist session turn ──────────────────────────────────────────────────
+    if sm and session and success:
+        sm.append(session, "user", user_input)
+        sm.append(session, "assistant", raw_result)
+
+    # ── Output ───────────────────────────────────────────────────────────────
+    if not should_stream:
+        print(f"\n{result}")
+    elif review_required:
+        # Was streamed but quality gate flagged it — print the wrapper after
+        print(f"\n{result}")
+
     print(f"\n  ✓ {latency:.1f}s  |  tokens in={tokens_in} out={tokens_out}  |  "
           f"fallback={fallback_used}  review={review_required}")
     print(f"{'─' * 60}\n")

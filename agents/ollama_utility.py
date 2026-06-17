@@ -74,47 +74,79 @@ class OllamaUtilityAgent:
         self._system_prompt = ROLE_PROMPTS.get(role, ROLE_PROMPTS["assistant"])
         logger.info(f"Initialized OllamaUtilityAgent model={self.model} role={self.role}")
 
-    def execute(self, prompt: str, context: dict | None = None) -> str:
+    def _build_messages(self, prompt: str, context: dict | None) -> list[dict]:
+        messages = [{"role": "system", "content": self._system_prompt}]
+        if context and "history" in context:
+            messages.extend(context["history"])
+        messages.append({"role": "user", "content": prompt})
+        return messages
+
+    def execute(self, prompt: str, context: dict | None = None, stream: bool = True) -> str:
         if not prompt or not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt cannot be empty, None, or non-string type")
 
-        logger.info(f"[Ollama:{self.role}] Sending to {self.model}...")
+        messages = self._build_messages(prompt, context)
+        logger.info(f"[Ollama:{self.role}] Sending to {self.model} (stream={stream})...")
+
         try:
-            response = requests.post(
-                OLLAMA_BASE_URL,
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": self._system_prompt},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "stream": False,
-                },
-                timeout=120,
-            )
-            response.raise_for_status()
-            data = response.json()
-
-            # Extract actual token counts (Ollama provides these)
-            self.last_prompt_tokens = data.get("prompt_eval_count", 0)
-            self.last_completion_tokens = data.get("eval_count", 0)
-
-            # Fallback to character estimate if Ollama didn't return counts
-            if not self.last_prompt_tokens:
-                self.last_prompt_tokens = len(prompt) // 4
-            if not self.last_completion_tokens:
-                result_text = data["message"]["content"]
-                self.last_completion_tokens = len(result_text) // 4
-
-            result: str = data["message"]["content"]
-            logger.info(
-                f"[Ollama:{self.role}] Done. "
-                f"tokens in={self.last_prompt_tokens} out={self.last_completion_tokens}"
-            )
-            return result
+            if stream:
+                return self._execute_streaming(messages, prompt)
+            return self._execute_blocking(messages, prompt)
         except Exception as e:
             logger.error(f"OllamaUtilityAgent({self.role}).execute failed: {e}")
             raise
+
+    def _execute_streaming(self, messages: list[dict], prompt: str) -> str:
+        import json as _json
+        collected: list[str] = []
+        with requests.post(
+            OLLAMA_BASE_URL,
+            json={"model": self.model, "messages": messages, "stream": True},
+            stream=True,
+            timeout=180,
+        ) as resp:
+            resp.raise_for_status()
+            for raw_line in resp.iter_lines():
+                if not raw_line:
+                    continue
+                chunk = _json.loads(raw_line)
+                token = chunk.get("message", {}).get("content", "")
+                if token:
+                    print(token, end="", flush=True)
+                    collected.append(token)
+                if chunk.get("done"):
+                    print()   # newline after last token
+                    self.last_prompt_tokens = chunk.get("prompt_eval_count", 0)
+                    self.last_completion_tokens = chunk.get("eval_count", 0)
+
+        result = "".join(collected)
+        if not self.last_prompt_tokens:
+            self.last_prompt_tokens = len(prompt) // 4
+        if not self.last_completion_tokens:
+            self.last_completion_tokens = len(result) // 4
+        logger.info(f"[Ollama:{self.role}] Stream done. tokens in={self.last_prompt_tokens} out={self.last_completion_tokens}")
+        return result
+
+    def _execute_blocking(self, messages: list[dict], prompt: str) -> str:
+        response = requests.post(
+            OLLAMA_BASE_URL,
+            json={"model": self.model, "messages": messages, "stream": False},
+            timeout=120,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        self.last_prompt_tokens = data.get("prompt_eval_count", 0)
+        self.last_completion_tokens = data.get("eval_count", 0)
+        result: str = data["message"]["content"]
+
+        if not self.last_prompt_tokens:
+            self.last_prompt_tokens = len(prompt) // 4
+        if not self.last_completion_tokens:
+            self.last_completion_tokens = len(result) // 4
+
+        logger.info(f"[Ollama:{self.role}] Done. tokens in={self.last_prompt_tokens} out={self.last_completion_tokens}")
+        return result
 
     async def validate_result_async(self, original_prompt: str, result: str) -> tuple[bool, str]:
         return True, result

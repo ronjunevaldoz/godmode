@@ -59,9 +59,12 @@ class ProviderAdapter:
             self._agents[model_id] = factory()
         return self._agents[model_id]
 
-    def execute(self, model_id: str, prompt: str, context: dict[str, Any] | None = None) -> str:
+    def execute(self, model_id: str, prompt: str, context: dict[str, Any] | None = None, stream: bool = False) -> str:
         agent = self._get_agent(model_id)
-        return agent.execute(prompt, context)
+        try:
+            return agent.execute(prompt, context, stream=stream)
+        except TypeError:
+            return agent.execute(prompt, context)
 
     def get_token_counts(self, model_id: str) -> tuple[int, int]:
         """Return (prompt_tokens, completion_tokens) from the last execute() call."""

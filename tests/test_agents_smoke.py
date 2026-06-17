@@ -73,7 +73,8 @@ class TestOllamaUtilityAgent(unittest.TestCase):
             json=lambda: {"message": {"content": "hello from ollama"}},
         )
         mock_post.return_value.raise_for_status = MagicMock()
-        result = self.agent.execute("summarize this")
+        # Use stream=False to test the blocking path (streaming needs iter_lines mock)
+        result = self.agent.execute("summarize this", stream=False)
         self.assertEqual(result, "hello from ollama")
 
     @patch("agents.ollama_utility.requests.post")
@@ -83,7 +84,40 @@ class TestOllamaUtilityAgent(unittest.TestCase):
             side_effect=req.exceptions.HTTPError("500")
         )
         with self.assertRaises(req.exceptions.HTTPError):
-            self.agent.execute("fail prompt")
+            self.agent.execute("fail prompt", stream=False)
+
+    @patch("agents.ollama_utility.requests.post")
+    def test_execute_streaming_collects_tokens(self, mock_post):
+        import json
+        chunks = [
+            json.dumps({"message": {"content": "hello "}, "done": False}),
+            json.dumps({"message": {"content": "world"}, "done": True,
+                        "prompt_eval_count": 5, "eval_count": 2}),
+        ]
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.iter_lines.return_value = iter(c.encode() for c in chunks)
+        mock_resp.__enter__ = lambda s: mock_resp
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_post.return_value = mock_resp
+        result = self.agent.execute("say hello", stream=True)
+        self.assertEqual(result, "hello world")
+        self.assertEqual(self.agent.last_prompt_tokens, 5)
+        self.assertEqual(self.agent.last_completion_tokens, 2)
+
+    @patch("agents.ollama_utility.requests.post")
+    def test_execute_history_injected_into_messages(self, mock_post):
+        mock_post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"message": {"content": "ok"}},
+        )
+        mock_post.return_value.raise_for_status = MagicMock()
+        history = [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}]
+        self.agent.execute("follow up", context={"history": history}, stream=False)
+        call_messages = mock_post.call_args[1]["json"]["messages"]
+        roles = [m["role"] for m in call_messages]
+        self.assertIn("user", roles)
+        self.assertIn("assistant", roles)
 
 
 class TestGeminiVisionAgent(unittest.TestCase):
