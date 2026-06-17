@@ -82,5 +82,77 @@
     "escalation_used": false,
     "notes": "Decision: DIRECT",
     "timestamp": "2026-06-16T23:58:05.539364"
+  },
+  {
+    "user_input": "Why is my Android app crashing in JNI?",
+    "intent": "Implementation.JNI",
+    "target_model": "codex_primary",
+    "confidence": 0.9,
+    "latency": 32.7730770111084,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-17T00:09:51.898485"
+  },
+  {
+    "user_input": "Hello, can you explain how the Godmode system routes requests to different AI specialists?",
+    "intent": "UNKNOWN",
+    "target_model": "claude_architect",
+    "confidence": 0.0,
+    "latency": 0.04015302658081055,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": true,
+    "notes": "Decision: ESCALATE",
+    "timestamp": "2026-06-17T08:59:34.573193"
+  },
+  {
+    "user_input": "Hello, can you explain how the Godmode system routes requests to different AI specialists?",
+    "intent": "Review.Architecture",
+    "target_model": "claude_architect",
+    "confidence": 0.9,
+    "latency": 5.682634115219116,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-17T09:11:54.983429"
+  },
+  {
+    "user_input": "test",
+    "intent": "UNKNOWN",
+    "target_model": "claude_architect",
+    "confidence": 1.0,
+    "latency": 5.7518088817596436,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": true,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-17T09:31:01.968451"
+  },
+  {
+    "user_input": "write a python function that sorts a list",
+    "intent": "Implementation.DevOps",
+    "target_model": "codex_primary",
+    "confidence": 0.9,
+    "latency": 5.737200021743774,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-17T09:31:30.945238"
+  },
+  {
+    "user_input": "analyze this image and describe what you see",
+    "intent": "Multimodal.Image",
+    "target_model": "gemini_vision",
+    "confidence": 0.9,
+    "latency": 5.741458892822266,
+    "success": true,
+    "fallback_used": false,
+    "escalation_used": false,
+    "notes": "Decision: DIRECT",
+    "timestamp": "2026-06-17T09:32:03.033429"
   }
 ]
