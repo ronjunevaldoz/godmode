@@ -100,6 +100,16 @@ def cmd_preset(args: list[str]) -> None:
     print(f"Unknown subcommand '{sub}'. Use: list | show <tier> | apply <tier|auto>")
 
 
+def cmd_coverage(_args: list[str]) -> None:
+    """Run test suite with coverage and print the term-missing report."""
+    import subprocess
+    result = subprocess.run(
+        ["python3", "-m", "pytest", "tests/", "--cov", "--cov-report=term-missing", "-q"],
+        capture_output=False,
+    )
+    sys.exit(result.returncode)
+
+
 def cmd_recommend(args: list[str]) -> None:
     """Show system-aware model recommendations. Pass --apply to patch the registry."""
     from routing.model_recommender import generate_report, patch_registry
@@ -154,6 +164,7 @@ COMMANDS = {
     "models":    (cmd_models,    "List Ollama models and their roles"),
     "preset":    (cmd_preset,    "Model presets by RAM tier  [list|show|apply <tier|auto>]"),
     "recommend": (cmd_recommend, "Dynamic model recommendations  [--apply to patch registry]"),
+    "coverage":  (cmd_coverage,  "Run test suite with line coverage report"),
 }
 
 
