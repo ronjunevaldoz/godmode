@@ -8,7 +8,11 @@ from .model_selector import ModelSelector
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/api/chat")
+OLLAMA_URL = (
+    os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    .rstrip("/")
+    .replace("/api/chat", "")
+) + "/api/chat"
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
 
 # skill  → running under Claude Desktop; no cloud keys, Claude is the reviewer

@@ -6,9 +6,12 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE_URL: Final = os.getenv(
-    "OLLAMA_BASE_URL", "http://localhost:11434/api/chat"
+_OLLAMA_BASE: Final = (
+    os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    .rstrip("/")
+    .replace("/api/chat", "")
 )
+OLLAMA_CHAT_URL: Final = f"{_OLLAMA_BASE}/api/chat"
 
 ROLE_PROMPTS: Final[dict[str, str]] = {
     "code_review": (
@@ -100,7 +103,7 @@ class OllamaUtilityAgent:
         import json as _json
         collected: list[str] = []
         with requests.post(
-            OLLAMA_BASE_URL,
+            OLLAMA_CHAT_URL,
             json={"model": self.model, "messages": messages, "stream": True},
             stream=True,
             timeout=180,
@@ -129,7 +132,7 @@ class OllamaUtilityAgent:
 
     def _execute_blocking(self, messages: list[dict], prompt: str) -> str:
         response = requests.post(
-            OLLAMA_BASE_URL,
+            OLLAMA_CHAT_URL,
             json={"model": self.model, "messages": messages, "stream": False},
             timeout=120,
         )

@@ -53,8 +53,7 @@ def _intent_map():
 
 @check("Ollama reachable")
 def _ollama():
-    url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/api/chat")
-    base = url.replace("/api/chat", "")
+    base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/").replace("/api/chat", "")
     try:
         r = requests.get(base, timeout=3)
         return r.status_code < 500
