@@ -1,81 +1,59 @@
+#!/usr/bin/env python3
+"""
+Godmode CLI Tool for managing AI system
+"""
+
+import os
 import sys
 import json
-import os
-from typing import Optional
+import subprocess
+from pathlib import Path
 
-# Ensure paths are correct for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from main import orchestrate
-from metrics.metrics_engine import MetricsEngine
-from memory.memory_manager import MemoryManager
-from evaluation.run_routing_eval import run_eval
-
-def run_request(prompt: str):
-    """
-    Executes a request through the Godmode routing system.
-    """
-    print(f"--- Godmode Execution ---")
-    orchestrate(prompt)
-
-def get_stats():
-    """
-    Retrieves and prints the current routing metrics.
-    """
-    mem = MemoryManager()
-    met = MetricsEngine(mem)
-    print(met.generate_report())
-
-def run_evaluation():
-    """
-    Runs the routing accuracy evaluation suite.
-    """
-    print("--- Running Routing Evaluation ---")
-    run_eval()
-
-def clear_memory():
-    """
-    Clears the task logs.
-    """
-    if os.path.exists("memory/task_logs.json"):
-        with open("memory/task_logs.json", "w") as f:
-            json.dump([], f)
-        print("Execution memory cleared.")
-    else:
-        print("No memory file found to clear.")
-
-def print_help():
-    print("""
-Godmode CLI - AI Runtime Orchestration Interface
-
-Usage:
-  python3 godmode_cli.py run "<prompt>"  - Route and execute a prompt
-  python3 godmode_cli.py stats            - Show runtime metrics and health
-  python3 godmode_cli.py eval             - Run routing accuracy tests
-  python3 godmode_cli.py clear           - Reset execution memory
-    """)
+def install_skills():
+    """Install Godmode skills and configurations"""
+    print("Installing Godmode skills...")
+    
+    # Create skills directory if it doesn't exist
+    skills_dir = Path(".continue/agents")
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Sample skills configuration
+    skills_config = {
+        "skills": [
+            {
+                "name": "code_generation",
+                "description": "Generate code solutions",
+                "provider": "ollama_qwen"
+            },
+            {
+                "name": "documentation",
+                "description": "Create documentation",
+                "provider": "ollama_llama3"
+            },
+            {
+                "name": "analysis",
+                "description": "Data analysis and insights",
+                "provider": "ollama_gemma4"
+            }
+        ],
+        "default_provider": "ollama_qwen"
+    }
+    
+    # Save skills configuration
+    with open(skills_dir / "godmode_skills.json", "w") as f:
+        json.dump(skills_config, f, indent=2)
+    
+    print("✓ Godmode skills installed successfully")
+    print("Skills configuration saved to .continue/agents/godmode_skills.json")
 
 def main():
-    if len(sys.argv) < 2:
-        print_help()
-        return
-
-    cmd = sys.argv[1]
-
-    if cmd == "run":
-        if len(sys.argv) < 3:
-            print("Error: Please provide a prompt. Usage: run \"your prompt\"")
-            return
-        run_request(" ".join(sys.argv[2:]))
-    elif cmd == "stats":
-        get_stats()
-    elif cmd == "eval":
-        run_evaluation()
-    elif cmd == "clear":
-        clear_memory()
+    """Main CLI entry point"""
+    if len(sys.argv) > 1 and sys.argv[1] == "install-skills":
+        install_skills()
     else:
-        print(f"Unknown command: {cmd}")
-        print_help()
+        print("Godmode CLI Tool")
+        print("Usage: python godmode_cli.py install-skills")
+        print("       python godmode_cli.py --help")
 
 if __name__ == "__main__":
     main()

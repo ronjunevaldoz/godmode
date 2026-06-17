@@ -1,51 +1,118 @@
-# Godmode: Agent Model Routing System
+# Godmode AI System
 
-A production-ready agent orchestration runtime designed to optimize LLM token usage and efficiency through tiered intent-based routing.
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Status](https://img.shields.io/badge/status-stable-green)](https://github.com/ronvaldoz/godmode)
 
-## 🚀 Overview
+An intelligent AI system with multi-provider support, fallback chains, and Ollama integration.
 
-Godmode uses a three-tier hierarchy to ensure the right model handles the right task at the right cost:
+## Features
 
-1. **L1 (Triage):** Ollama (Local) classifies the user's intent.
-2. **L2 (Specialists):** Codex (Code), Gemini (Visual), or Ollama (Utility) execute the task.
-3. **L3 (Governor):** Claude performs high-level reasoning, planning, and final validation.
+- **Multi-Provider Support**: OpenAI, Anthropic, Google, and Ollama
+- **Intelligent Fallbacks**: Automatic switching between providers
+- **Ollama Integration**: Local LLM support with 6 different models
+- **Configurable Retry Logic**: Flexible retry policies
+- **Extensible Architecture**: Easy to add new providers
 
-## 🛠️ Architecture
-
-### Routing Flow
-`User Input` $\rightarrow$ `L1 Triage` $\rightarrow$ `Capability Matching` $\rightarrow$ `L2 Execution` $\rightarrow$ `L3 Validation` $\rightarrow$ `Memory Logging`
-
-### Component Breakdown
-- **`routing/`**: Contains the triage logic, intent mappings, and capability matrices.
-- **`agents/`**: Wrappers for different LLM providers.
-- **`memory/`**: Execution logs and persistence.
-- **`metrics/`**: Telemetry and performance analysis.
-- **`configs/`**: Retry policies, fallback chains, and model limits.
-- **`evaluation/`**: Testing suite for routing accuracy.
-
-## 📋 Getting Started
+## Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- Ollama running locally (`llama3`)
-- API keys for Claude, Codex, and Gemini (configured in environment variables)
 
-### Installation
 ```bash
-git clone https://github.com/ronjunevaldoz/godmode.git
-cd godmode
-pip install -r requirements.txt # (Note: You may need to create this file)
+# Install required packages
+pip install -r requirements.txt
 ```
 
-### Usage
-Run the orchestrator from the terminal:
-```bash
-python3 main.py "Your request here"
+### Setup
+
+1. **Configure API Keys** (set in environment variables):
+   ```bash
+   export OPENAI_API_KEY="your_openai_key"
+   export ANTHROPIC_API_KEY="your_anthropic_key" 
+   export GOOGLE_API_KEY="your_google_key"
+   ```
+
+2. **Install Godmode Skills**:
+   ```bash
+   python godmode_cli.py install-skills
+   ```
+
+3. **Run the system**:
+   ```bash
+   python main.py
+   ```
+
+## Configuration
+
+### Ollama Models Available
+- `ollama_qwen`: qwen2.5-coder:14b
+- `ollama_llama3`: llama3:latest
+- `ollama_gemma4`: gemma4:12b
+- `ollama_qwen3`: qwen3:8b
+- `ollama_qwen3_5`: qwen3.5:4b
+- `ollama_deepseek`: deepseek-r1:14b
+
+### Configuration Files
+- `configs/api_config.yaml` - Main API configuration
+- `configs/fallback_chain.yaml` - Retry and fallback policies
+
+## Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   User Input    │───▶│   Routing       │───▶│   Provider      │
+│                 │    │   System        │    │   Selection     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │   Fallback      │
+                    │   Chain         │
+                    └─────────────────┘
 ```
 
-## 📈 Telemetry & Evaluation
-- **Run Eval:** `python3 evaluation/run_routing_eval.py`
-- **View Logs:** Check `memory/task_logs.json`
+## Installation
 
-## 📜 Routing Rules
-Detailed routing rules, intent hierarchies, and capability matrices can be found in `rules/agent-model-routing.md`.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ronvaldoz/godmode.git
+   cd godmode
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Install Godmode skills:
+   ```bash
+   python godmode_cli.py install-skills
+   ```
+
+## Usage
+
+### Basic Usage
+```bash
+python main.py
+```
+
+### With Custom Configuration
+```bash
+python main.py --config configs/custom_config.yaml
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, please open an issue on GitHub or contact the maintainers.
