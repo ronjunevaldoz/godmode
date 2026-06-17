@@ -229,11 +229,63 @@ def cmd_models(_args: list[str]) -> None:
     print()
 
 
+def cmd_report(_args: list[str]) -> None:
+    from collections import defaultdict
+
+    log_path = Path(__file__).parent / "logs" / "failures.jsonl"
+    if not log_path.exists():
+        print("\n  No failure log yet — logs/failures.jsonl is created on first flagged run.\n")
+        return
+
+    entries: list[dict] = []
+    with log_path.open() as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+
+    if not entries:
+        print("\n  Failure log is empty.\n")
+        return
+
+    by_intent: dict[str, list[dict]] = defaultdict(list)
+    for e in entries:
+        by_intent[e.get("intent", "unknown")].append(e)
+
+    print(f"\n{'═' * 60}")
+    print(f"  Godmode Failure Report  ({len(entries)} flagged runs)")
+    print(f"{'═' * 60}\n")
+
+    for intent, runs in sorted(by_intent.items(), key=lambda x: -len(x[1])):
+        scores = [r["score"] for r in runs if r.get("score") is not None]
+        avg    = sum(scores) / len(scores) if scores else 0.0
+        models = {r["model"] for r in runs}
+        reasons = [r.get("reason", "") for r in runs]
+        top_reason = max(set(reasons), key=reasons.count) if reasons else "—"
+
+        print(f"  {intent}")
+        print(f"    runs={len(runs)}  avg_score={avg:.2f}  models={', '.join(models)}")
+        print(f"    top reason: {top_reason}")
+
+        # Show most recent prompt excerpt
+        last = runs[-1]
+        excerpt = last.get("prompt", "")[:120].replace("\n", " ")
+        print(f"    last prompt: {excerpt!r}")
+        print()
+
+    print(f"  Tip: intents with avg_score < 0.40 need a stronger model assignment.")
+    print(f"  Run: python3 godmode_cli.py recommend\n")
+
+
 COMMANDS = {
     "setup":     (cmd_setup,     "First-run setup wizard — configure Ollama and assign models"),
     "run":       (cmd_run,       "Route and execute a prompt  [--session <name> for multi-turn]"),
     "session":   (cmd_session,   "Manage conversation sessions  [list|show <name>|clear <name>]"),
     "stats":     (cmd_stats,     "Token savings and routing dashboard"),
+    "report":    (cmd_report,    "Show flagged-run failure log grouped by intent"),
     "eval":      (cmd_eval,      "Run routing accuracy evaluation"),
     "clear":     (cmd_clear,     "Reset memory / task logs"),
     "models":    (cmd_models,    "List Ollama models and their roles"),

@@ -1,8 +1,39 @@
+import json
 import os
 import sys
 import time
 import yaml
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Tuple
+
+_LOGS_DIR = Path(__file__).parent / "logs"
+_FAILURE_LOG = _LOGS_DIR / "failures.jsonl"
+
+
+def _log_failure(
+    intent: str,
+    model_id: str,
+    prompt: str,
+    response: str,
+    score: float | None,
+    reason: str,
+) -> None:
+    try:
+        _LOGS_DIR.mkdir(exist_ok=True)
+        entry = {
+            "ts":      datetime.now(timezone.utc).isoformat(),
+            "intent":  intent,
+            "model":   model_id,
+            "score":   round(score, 3) if score is not None else None,
+            "reason":  reason,
+            "prompt":  prompt[:500],
+            "response": response[:2000],
+        }
+        with _FAILURE_LOG.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
 
 from routing.router import route_request, SKILL_MODE
 from routing.provider_adapter import ProviderAdapter
@@ -157,6 +188,7 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
             model=model_id,
             score=q_score if should_escalate(q_score or 1.0) else None,
         )
+        _log_failure(intent, model_id, user_input, raw_result, q_score, escalation_reason or "flagged")
 
     latency = time.time() - start
 

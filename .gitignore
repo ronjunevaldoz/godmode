@@ -56,3 +56,4 @@ memory/task_logs.json
 !.claude/settings.json
 node_modules/__pycache__/
 *.pyc
+logs/*.jsonl

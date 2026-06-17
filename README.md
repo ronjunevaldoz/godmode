@@ -145,6 +145,7 @@ Set via `GODMODE_MODE=skill` or `GODMODE_MODE=standalone` in `.env.local`.
 | `session show <name>` | Print conversation history |
 | `session clear <name>` | Delete a session |
 | `stats` | Token savings dashboard + verdict |
+| `report` | Failure log — flagged runs grouped by intent, avg quality scores |
 | `models` | List pulled Ollama models and assigned roles |
 | `preset list` | RAM-tiered preset matrix |
 | `preset apply auto` | Auto-detect server RAM, apply best preset |
