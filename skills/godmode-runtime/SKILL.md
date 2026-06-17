@@ -5,47 +5,97 @@ description: Local-first AI routing runtime. Routes prompts to the best model (O
 
 # Godmode Runtime
 
-## Decision: what to pass to godmode
+## Reducing hallucinations — read this first
 
-Before invoking godmode, decide which form to use:
+Local models hallucinate when they have no real context to work from. There are four failure modes and how to prevent each:
 
-| Task type | Command form |
-|-----------|-------------|
-| Code review, security audit, bug fix, refactor, tests | `run "task" --file path/to/File.kt` |
-| Explain, summarize, design, architecture (no specific file) | `run "task"` |
+**1. No file content → model invents generic code**
 
-**For any code task: you MUST resolve the file path and pass it with `--file`.**
-Godmode cannot read the filesystem itself — without `--file` the model receives no code and will hallucinate generic advice for a different language/framework entirely.
+The model cannot access the filesystem. Without `--file` it receives only the prompt text and will generate advice for a completely different language/framework.
 
-Steps for code tasks:
-1. Identify which file the user is referring to (read it if needed to confirm the path)
-2. Get its path relative to the project root (e.g. `src/services/SalaryServiceImpl.kt`)
-3. Pass it with `--file`: `python3 "$GODMODE_CLI" run "security review" --file src/services/SalaryServiceImpl.kt`
+Always pass the actual file:
+```bash
+# Wrong — model has no code, will hallucinate Spring/Java for a Kotlin/Ktor service
+python3 "$GODMODE_CLI" run "security review on SalaryServiceImpl"
+
+# Correct — model receives the real code
+python3 "$GODMODE_CLI" run "security review" --file src/services/SalaryServiceImpl.kt
+```
+
+**2. No project context → model guesses the wrong stack**
+
+Create `GODMODE_CONTEXT.md` in the project root once. Godmode injects it automatically for code tasks.
+
+```markdown
+## Stack
+- Language: Kotlin · Framework: Ktor · Database: MongoDB
+- Auth: JWT, per-guild scoping via guildId
+- No Spring — never suggest @PreAuthorize, JDBC, or calculateBonus
+```
+
+Without this, the model defaults to the most common patterns it was trained on (Spring/Java, SQL, etc.) even when reviewing Kotlin/Mongo code.
+
+**3. Vague prompt → model fills in blanks with assumptions**
+
+Specific prompts produce grounded output. Vague prompts invite invention.
 
 ```bash
-# Code tasks — always --file
-python3 "$GODMODE_CLI" run "security review"          --file src/services/SalaryServiceImpl.kt
-python3 "$GODMODE_CLI" run "find and fix the bug"     --file app/routes/auth.py
-python3 "$GODMODE_CLI" run "write unit tests"         --file utils/parser.ts
-python3 "$GODMODE_CLI" run "refactor for readability" --file core/engine.go
+# Vague — model decides what to look for
+python3 "$GODMODE_CLI" run "review this" --file src/PaymentService.kt
 
-# Multiple files
-python3 "$GODMODE_CLI" run "compare implementations" --file old/Service.kt --file new/Service.kt
+# Specific — model focuses on real concerns
+python3 "$GODMODE_CLI" run "check for double-payment vulnerabilities and missing input validation" \
+  --file src/PaymentService.kt
+```
 
-# General tasks — no --file needed
-python3 "$GODMODE_CLI" run "explain the repository pattern"
+**4. Ignoring NEEDS REVIEW → acting on bad output**
+
+When godmode wraps a result in `⚠ NEEDS REVIEW`, the quality gate scored it below 0.55. Treat that output as a draft, not a recommendation. Either verify it manually or re-run in standalone mode with an API key for cloud retry.
+
+---
+
+## Before invoking godmode for any code task
+
+Run through this checklist:
+
+- [ ] Do I have the file path? (not just the class name — the actual `.kt`/`.py`/`.ts` path)
+- [ ] Is `GODMODE_CONTEXT.md` in the project root with the stack/conventions?
+- [ ] Is my prompt specific enough to constrain the output?
+
+If any box is unchecked, fix it before invoking. The quality of godmode output is directly proportional to the context you give it.
+
+---
+
+## Command reference
+
+```bash
+# Code tasks — --file is required
+python3 "$GODMODE_CLI" run "security review"           --file src/services/SalaryServiceImpl.kt
+python3 "$GODMODE_CLI" run "find and fix the bug"      --file app/routes/auth.py
+python3 "$GODMODE_CLI" run "write unit tests"          --file utils/parser.ts
+python3 "$GODMODE_CLI" run "refactor for readability"  --file core/engine.go
+
+# Multiple files (compare, cross-file bugs, shared interfaces)
+python3 "$GODMODE_CLI" run "find inconsistencies between these" \
+  --file src/old/PaymentService.kt \
+  --file src/new/PaymentService.kt
+
+# Multi-turn session on the same file
+python3 "$GODMODE_CLI" run "security review"        --file src/SalaryServiceImpl.kt --session audit
+python3 "$GODMODE_CLI" run "now write the fixes"    --file src/SalaryServiceImpl.kt --session audit
+
+# General tasks (no file needed)
 python3 "$GODMODE_CLI" run "design a microservices auth architecture"
+python3 "$GODMODE_CLI" run "explain the repository pattern with examples"
 ```
 
 ---
 
 ## How to invoke
 
-Before running any godmode command, resolve the CLI path dynamically:
+Resolve the CLI path before running any command:
 
 ```bash
-# 1. Prefer GODMODE_PATH env var (set in shell profile for permanent fix)
-# 2. Fall back to searching the home directory for godmode_cli.py
 GODMODE_CLI="${GODMODE_PATH:-$(find ~ -maxdepth 5 -name 'godmode_cli.py' -not -path '*/__pycache__/*' 2>/dev/null | head -1)}"
 
 if [ -z "$GODMODE_CLI" ]; then
@@ -54,27 +104,15 @@ if [ -z "$GODMODE_CLI" ]; then
 fi
 ```
 
-**Permanent fix** — add to `~/.zshrc` or `~/.bashrc` so every session picks it up automatically:
+**Permanent fix** — add to `~/.zshrc` or `~/.bashrc`:
 ```bash
 export GODMODE_PATH="$(find ~ -maxdepth 5 -name 'godmode_cli.py' -not -path '*/__pycache__/*' 2>/dev/null | head -1)"
 ```
 
-Then run commands using `$GODMODE_CLI`:
-
-```bash
-python3 "$GODMODE_CLI" run "the user's prompt"
-python3 "$GODMODE_CLI" run "prompt" --session <name>   # multi-turn
-python3 "$GODMODE_CLI" stats                           # savings dashboard
-python3 "$GODMODE_CLI" models                          # list available models
-python3 "$GODMODE_CLI" session list                    # list sessions
-```
-
-> **Permission note:** Add a Bash allow rule in Claude Code settings for the resolved path, e.g.:
+> **Permission note:** Add a Bash allow rule in Claude Code settings:
 > `Bash(python3 /your/path/to/godmode_cli.py *)`
->
-> Or set `GODMODE_PATH=/path/to/godmode_cli.py` in your shell profile so the skill finds it automatically.
 
-Godmode is a local-first AI routing runtime. It classifies the intent of any prompt, matches required capabilities to a model registry, and executes — preferring free local Ollama models over paid cloud APIs. After every session it shows how much you saved.
+---
 
 ## Setup (first time)
 
@@ -85,149 +123,63 @@ pip install -r requirements.txt
 python3 godmode_cli.py setup   # interactive wizard — detects Ollama, assigns models
 ```
 
-The wizard will:
-1. Ask for your Ollama URL (default: `http://localhost:11434`)
-2. List all pulled models and let you assign each to a role
-3. Pick operating mode (`skill` for Claude Desktop, `standalone` for independent use)
-4. Write `.env.local` and patch `configs/model_registry.yaml`
+Then create `GODMODE_CONTEXT.md` in your project root (see section above).
 
-## Running prompts
-
-### General tasks (no file needed)
-
-```bash
-python3 "$GODMODE_CLI" run "Summarise this log output and find anomalies"
-python3 "$GODMODE_CLI" run "Design a microservices auth architecture"
-python3 "$GODMODE_CLI" run "Explain the repository pattern with examples"
-```
-
-### Code tasks — always use --file
-
-For any review, bug fix, refactor, or security audit, pass the file explicitly with `--file`.
-The model has no access to the filesystem — without `--file` it will hallucinate generic advice.
-
-```bash
-# Single file
-python3 "$GODMODE_CLI" run "security review" --file src/services/SalaryServiceImpl.kt
-python3 "$GODMODE_CLI" run "find bugs and suggest fixes" --file app/routes/auth.py
-python3 "$GODMODE_CLI" run "refactor for readability" --file utils/parser.ts
-
-# Multiple files
-python3 "$GODMODE_CLI" run "compare these two implementations" \
-  --file src/old/PaymentService.kt \
-  --file src/new/PaymentService.kt
-
-# With session (multi-turn on the same file)
-python3 "$GODMODE_CLI" run "security review" --file src/SalaryServiceImpl.kt --session salary-review
-python3 "$GODMODE_CLI" run "now fix the issues you found" --file src/SalaryServiceImpl.kt --session salary-review
-```
-
-The path must be relative to the directory you are running the command from.
-If you have the file open in your editor, use its path relative to the project root.
-
-**Never do this** — class name without `--file` gives the model nothing to work with:
-```bash
-# WRONG — model has no code, will hallucinate
-python3 "$GODMODE_CLI" run "review the SalaryServiceImpl for security issues"
-```
+---
 
 ## All commands
 
 ```bash
-python3 godmode_cli.py setup              # First-run wizard
-python3 godmode_cli.py run "prompt"                        # Route and execute
-python3 godmode_cli.py run "prompt" --file src/Foo.kt      # With file context
+python3 godmode_cli.py setup                              # First-run wizard
+python3 godmode_cli.py run "prompt"                       # Route and execute
+python3 godmode_cli.py run "prompt" --file src/Foo.kt     # With file context
 python3 godmode_cli.py run "prompt" --file a.kt --file b.kt  # Multiple files
-python3 godmode_cli.py stats              # Savings dashboard + verdict
-python3 godmode_cli.py models             # List Ollama models and assigned roles
-python3 godmode_cli.py preset list        # RAM-tiered preset matrix
-python3 godmode_cli.py preset apply auto  # Auto-select preset from server RAM
-python3 godmode_cli.py recommend          # Score pulled models, suggest registry changes
-python3 godmode_cli.py recommend --apply  # Apply recommendations
-python3 godmode_cli.py eval               # Routing accuracy evaluation (11 cases)
-python3 godmode_cli.py clear              # Reset task memory
-python3 godmode_cli.py coverage           # Test suite with coverage report
+python3 godmode_cli.py run "prompt" --session <name>      # Multi-turn session
+python3 godmode_cli.py stats                              # Savings dashboard + verdict
+python3 godmode_cli.py report                             # Failure log by intent
+python3 godmode_cli.py models                             # List Ollama models and roles
+python3 godmode_cli.py preset apply auto                  # Auto-select preset from RAM
+python3 godmode_cli.py recommend                          # Suggest registry improvements
+python3 godmode_cli.py recommend --apply                  # Apply recommendations
+python3 godmode_cli.py session list                       # List saved sessions
+python3 godmode_cli.py session show <name>                # Print session history
+python3 godmode_cli.py session clear <name>               # Delete a session
+python3 godmode_cli.py eval                               # Routing accuracy evaluation
+python3 godmode_cli.py clear                              # Reset task memory
 ```
+
+---
 
 ## Operating modes
 
 | Mode | How to set | Behaviour |
 |------|-----------|-----------|
-| `skill` *(default)* | `GODMODE_MODE=skill` | Runs inside Claude Desktop. No cloud API keys needed. High-stakes results flagged `NEEDS REVIEW`. |
-| `standalone` | `GODMODE_MODE=standalone` | Runs independently. Low-quality/high-stakes results escalate to cloud automatically. |
+| `skill` *(default)* | `GODMODE_MODE=skill` | Runs inside Claude Desktop. No cloud API keys needed. Low-quality results flagged `NEEDS REVIEW`. |
+| `standalone` | `GODMODE_MODE=standalone` | Runs independently. Low-quality results escalate to cloud automatically. |
+
+---
 
 ## Routing pipeline
 
 ```
 Your prompt
-  → L1 Router   classify intent (via Ollama triage model)
-               resolve capabilities from intent_map.json
-               score + select model from model_registry.yaml
-               apply complexity gate (danger keywords → escalate)
-  → L2 Executor run selected model
-               quality gate: judge scores output 0–1
-               < 0.55 → flag (skill) or retry cloud (standalone)
+  → L1 Router   classify intent · resolve capabilities · select model
+                complexity gate: danger keywords escalate before execution
+  → L2 Executor run selected model (streams tokens live)
+                quality gate: judge scores output 0–1
+                < 0.55 → NEEDS REVIEW (skill) or cloud retry (standalone)
   → L3 Governor optional cloud validation for arch/spec tasks
 ```
 
-## Intent categories
+## Intent → model routing
 
-| Intent prefix | Routes to | Example |
+| Intent prefix | Routes to | Examples |
 |---|---|---|
 | `Utility.*` | local fast model | summarise, classify, extract |
 | `Improve.Code` / `Review.Code` | local code model | refactor, review PR |
 | `Fix.Bug` / `Review.Security` | cloud or flagged | security audit, crash fix |
 | `Architecture.*` | cloud or flagged | system design, ADR |
 | `Multimodal.*` | vision model | UI screenshot analysis |
-
-## Stats & savings
-
-```bash
-python3 godmode_cli.py stats
-```
-
-Shows token usage, per-model breakdown, estimated savings vs Claude Opus and GPT-4o, and a verdict:
-
-```
-  PERFECT   100% local — saved ~$1.24 vs Claude Opus. Keep it up!
-  WINNING   82% local — ~$0.91 saved. Nice efficiency.
-  NEUTRAL   55% local, 45% cloud — $0.43 saved.
-  WARNING   Only 20% local — run 'preset apply auto' to improve.
-  IN THE RED  0% local — check Ollama is running.
-```
-
-## Model presets by RAM
-
-```bash
-python3 godmode_cli.py preset apply auto   # auto-detect server RAM and apply best tier
-```
-
-| Tier | Min RAM | Models |
-|------|---------|--------|
-| `6gb` | 5 GB | 1B–3B class |
-| `8gb` | 7 GB | 7B class |
-| `16gb` | 14 GB | 14B class |
-| `32gb` | 28 GB | 30B class |
-| `64gb` | 56 GB | 70B+ |
-
-## Key config files
-
-| File | Purpose |
-|------|---------|
-| `.env.local` | Your personal env vars — Ollama URL, API keys (gitignored) |
-| `configs/model_registry.yaml` | Model metadata, capabilities, cost rates |
-| `routing/intent_map.json` | Intent → capability mappings |
-
-## Environment variables
-
-| Variable | Default | Notes |
-|----------|---------|-------|
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Point to remote server if Ollama isn't local |
-| `OLLAMA_SERVER_RAM_GB` | auto-detected | Set for accurate preset recommendations |
-| `GODMODE_MODE` | `skill` | `skill` or `standalone` |
-| `ANTHROPIC_API_KEY` | — | Only needed in `standalone` mode |
-| `OPENAI_API_KEY` | — | Only needed in `standalone` mode |
-| `GOOGLE_API_KEY` | — | Optional — Gemini vision model |
 
 ## Source
 
