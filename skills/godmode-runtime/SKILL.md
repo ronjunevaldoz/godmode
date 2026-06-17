@@ -67,6 +67,22 @@ python3 godmode_cli.py run "Design a microservices auth architecture"
 
 Each run prints the routed model, mode tag (`[SKILL]` / `[STANDALONE]`), and the result. High-stakes tasks (bug fixes, security reviews) are wrapped in a `NEEDS REVIEW` block in skill mode.
 
+### Code review or security tasks — always include the file path
+
+Godmode auto-reads any file paths mentioned in the prompt and injects their contents before sending to the model. Without the actual code the model will hallucinate generic advice.
+
+```bash
+# Good — godmode reads and injects the file automatically
+python3 godmode_cli.py run "security review on src/services/PaymentService.kt"
+python3 godmode_cli.py run "find bugs in app/routes/auth.py"
+python3 godmode_cli.py run "refactor utils/parser.ts for readability"
+
+# Bad — no file path, model has no context
+python3 godmode_cli.py run "security review on PaymentService"
+```
+
+If Claude is invoking godmode on a file it has open, pass the relative path from the project root (e.g. `src/services/Foo.kt`), not an absolute path.
+
 ## All commands
 
 ```bash

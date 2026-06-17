@@ -1,11 +1,41 @@
 import json
 import os
+import re
 import sys
 import time
 import yaml
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Tuple
+
+_FILE_RE = re.compile(
+    r'\b((?:[\w.\-]+/)*[\w.\-]+\.(?:kt|java|py|ts|tsx|js|jsx|go|rs|rb|cpp|c|h|cs|swift|json|yaml|yml|toml|sql|sh|md))\b'
+)
+_MAX_FILE_CHARS = 12_000
+
+
+def _inject_file_context(prompt: str) -> str:
+    """Scan prompt for file paths, read any that exist, prepend their content."""
+    found: list[str] = []
+    seen: set[str] = set()
+    for match in _FILE_RE.finditer(prompt):
+        path_str = match.group(1)
+        if path_str in seen:
+            continue
+        seen.add(path_str)
+        p = Path(path_str)
+        if not p.is_file():
+            p = Path.cwd() / path_str
+        if p.is_file():
+            try:
+                content = p.read_text(errors="replace")[:_MAX_FILE_CHARS]
+                found.append(f"<file path=\"{path_str}\">\n{content}\n</file>")
+            except OSError:
+                pass
+    if not found:
+        return prompt
+    file_block = "\n\n".join(found)
+    return f"{file_block}\n\n{prompt}"
 
 _LOGS_DIR = Path(__file__).parent / "logs"
 _FAILURE_LOG = _LOGS_DIR / "failures.jsonl"
@@ -133,10 +163,16 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
     escalation_reason = routing.get("escalation_reason")
     review_required   = routing.get("review_required", False)
 
+    # Enrich execution prompt with file contents if any paths are mentioned
+    execution_prompt = _inject_file_context(user_input)
+    files_injected = execution_prompt != user_input
+
     mode_tag = "[skill]" if SKILL_MODE else "[standalone]"
     print(f"  Mode      : {mode_tag}")
     print(f"  Intent    : {intent}  [{complexity} complexity]")
     print(f"  Model     : {model_id}  [{decision}]  confidence={routing['confidence']:.2f}")
+    if files_injected:
+        print(f"  Files     : injected file context into prompt")
     if escalation_reason:
         flag = "⚑ review" if SKILL_MODE else "↑ cloud"
         print(f"  {flag}  : {escalation_reason}")
@@ -150,12 +186,12 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
     if should_stream:
         print(f"{'─' * 60}")
 
-    result, success, fallback_used = run_with_retry(model_id, user_input, context or None, stream=should_stream)
+    result, success, fallback_used = run_with_retry(model_id, execution_prompt, context or None, stream=should_stream)
     raw_result = result   # preserve unwrapped text for session history
 
     # ── Quality gate ─────────────────────────────────────────────────────────
     if success and model_id in LOCAL_IDS:
-        q_score, q_reason = quality_assess(user_input, result, model_id)
+        q_score, q_reason = quality_assess(execution_prompt, result, model_id)
         if should_escalate(q_score):
             print(f"\n  ⚠ Quality gate: score={q_score:.2f} — {q_reason}")
             if SKILL_MODE:
@@ -164,7 +200,7 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
                 print(f"  Flagging for review (skill mode — no cloud retry).")
             else:
                 print(f"  Retrying with cloud model (codex_primary)...")
-                cloud_result, cloud_success, _ = run_with_retry("codex_primary", user_input)
+                cloud_result, cloud_success, _ = run_with_retry("codex_primary", execution_prompt)
                 if cloud_success:
                     result             = cloud_result
                     raw_result         = cloud_result
