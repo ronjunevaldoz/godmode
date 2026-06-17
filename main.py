@@ -23,9 +23,7 @@ def _inject_file_context(prompt: str) -> str:
         if path_str in seen:
             continue
         seen.add(path_str)
-        p = Path(path_str)
-        if not p.is_file():
-            p = Path.cwd() / path_str
+        p = Path(path_str)  # already resolves against CWD
         if p.is_file():
             try:
                 content = p.read_text(errors="replace")[:_MAX_FILE_CHARS]
@@ -37,19 +35,22 @@ def _inject_file_context(prompt: str) -> str:
     file_block = "\n\n".join(found)
     return f"{file_block}\n\n{prompt}"
 
-_CONTEXT_FILE = Path(__file__).parent / "GODMODE_CONTEXT.md"
+_GODMODE_DIR = Path(__file__).parent
 _CODE_INTENTS = {"Review", "Fix", "Improve", "Architecture", "Generate"}
 
 
 def _load_project_context(intent: str) -> str:
-    """Return GODMODE_CONTEXT.md contents for code-related intents, else empty."""
+    """Return GODMODE_CONTEXT.md for code-related intents.
+    Checks CWD (per-project) first, falls back to godmode install dir (global)."""
     top = intent.split(".")[0]
     if top not in _CODE_INTENTS:
         return ""
-    try:
-        return _CONTEXT_FILE.read_text(errors="replace")[:2000]
-    except OSError:
-        return ""
+    for candidate in (Path.cwd() / "GODMODE_CONTEXT.md", _GODMODE_DIR / "GODMODE_CONTEXT.md"):
+        try:
+            return candidate.read_text(errors="replace")[:2000]
+        except OSError:
+            pass
+    return ""
 
 
 _LOGS_DIR = Path(__file__).parent / "logs"
@@ -212,7 +213,7 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
 
     # ── Quality gate ─────────────────────────────────────────────────────────
     if success and model_id in LOCAL_IDS:
-        q_score, q_reason = quality_assess(execution_prompt, result, model_id)
+        q_score, q_reason = quality_assess(user_input, result, model_id)
         if should_escalate(q_score):
             print(f"\n  ⚠ Quality gate: score={q_score:.2f} — {q_reason}")
             if SKILL_MODE:
