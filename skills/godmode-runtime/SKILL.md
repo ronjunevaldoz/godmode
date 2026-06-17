@@ -5,6 +5,40 @@ description: Local-first AI routing runtime. Routes prompts to the best model (O
 
 # Godmode Runtime
 
+## Decision: what to pass to godmode
+
+Before invoking godmode, decide which form to use:
+
+| Task type | Command form |
+|-----------|-------------|
+| Code review, security audit, bug fix, refactor, tests | `run "task" --file path/to/File.kt` |
+| Explain, summarize, design, architecture (no specific file) | `run "task"` |
+
+**For any code task: you MUST resolve the file path and pass it with `--file`.**
+Godmode cannot read the filesystem itself — without `--file` the model receives no code and will hallucinate generic advice for a different language/framework entirely.
+
+Steps for code tasks:
+1. Identify which file the user is referring to (read it if needed to confirm the path)
+2. Get its path relative to the project root (e.g. `src/services/SalaryServiceImpl.kt`)
+3. Pass it with `--file`: `python3 "$GODMODE_CLI" run "security review" --file src/services/SalaryServiceImpl.kt`
+
+```bash
+# Code tasks — always --file
+python3 "$GODMODE_CLI" run "security review"          --file src/services/SalaryServiceImpl.kt
+python3 "$GODMODE_CLI" run "find and fix the bug"     --file app/routes/auth.py
+python3 "$GODMODE_CLI" run "write unit tests"         --file utils/parser.ts
+python3 "$GODMODE_CLI" run "refactor for readability" --file core/engine.go
+
+# Multiple files
+python3 "$GODMODE_CLI" run "compare implementations" --file old/Service.kt --file new/Service.kt
+
+# General tasks — no --file needed
+python3 "$GODMODE_CLI" run "explain the repository pattern"
+python3 "$GODMODE_CLI" run "design a microservices auth architecture"
+```
+
+---
+
 ## How to invoke
 
 Before running any godmode command, resolve the CLI path dynamically:
