@@ -31,6 +31,28 @@ def cmd_clear(_args: list[str]) -> None:
     print("✓ Memory cleared.")
 
 
+def cmd_recommend(args: list[str]) -> None:
+    """Show system-aware model recommendations. Pass --apply to patch the registry."""
+    from routing.model_recommender import generate_report, patch_registry
+    print(generate_report())
+    if "--apply" in args:
+        changes = patch_registry(dry_run=False)
+        if changes:
+            print("  Applied changes to model_registry.yaml:")
+            for c in changes:
+                print(c)
+            print()
+        else:
+            print("  No changes needed — registry already optimal.\n")
+    else:
+        changes = patch_registry(dry_run=True)
+        if changes:
+            print("  Suggested registry changes (run with --apply to patch):")
+            for c in changes:
+                print(c)
+            print()
+
+
 def cmd_models(_args: list[str]) -> None:
     """Show all local Ollama models and their assigned roles."""
     import requests, os
@@ -56,11 +78,12 @@ def cmd_models(_args: list[str]) -> None:
 
 
 COMMANDS = {
-    "run":    (cmd_run,    "Route and execute a prompt"),
-    "stats":  (cmd_stats,  "Token savings and routing dashboard"),
-    "eval":   (cmd_eval,   "Run routing accuracy evaluation"),
-    "clear":  (cmd_clear,  "Reset memory / task logs"),
-    "models": (cmd_models, "List Ollama models and their roles"),
+    "run":       (cmd_run,       "Route and execute a prompt"),
+    "stats":     (cmd_stats,     "Token savings and routing dashboard"),
+    "eval":      (cmd_eval,      "Run routing accuracy evaluation"),
+    "clear":     (cmd_clear,     "Reset memory / task logs"),
+    "models":    (cmd_models,    "List Ollama models and their roles"),
+    "recommend": (cmd_recommend, "System-aware model recommendations  [--apply to patch registry]"),
 }
 
 
