@@ -140,6 +140,12 @@ def cmd_recommend(args: list[str]) -> None:
             print()
 
 
+def cmd_setup(_args: list[str]) -> None:
+    """Interactive first-run setup wizard."""
+    from setup_wizard import run
+    run()
+
+
 def cmd_models(_args: list[str]) -> None:
     """Show all local Ollama models and their assigned roles."""
     import requests, os
@@ -165,6 +171,7 @@ def cmd_models(_args: list[str]) -> None:
 
 
 COMMANDS = {
+    "setup":     (cmd_setup,     "First-run setup wizard — configure Ollama and assign models"),
     "run":       (cmd_run,       "Route and execute a prompt"),
     "stats":     (cmd_stats,     "Token savings and routing dashboard"),
     "eval":      (cmd_eval,      "Run routing accuracy evaluation"),
