@@ -42,7 +42,7 @@
   {
     "prompt": "Find and fix the null pointer exception in the payment flow",
     "expected_intent": "Fix.Bug",
-    "expected_model_id": "ollama_qwen_coder"
+    "expected_model_id": "codex_primary"
   },
   {
     "prompt": "Research best practices for distributed tracing in microservices",
@@ -52,6 +52,6 @@
   {
     "prompt": "Audit this code for security vulnerabilities",
     "expected_intent": "Review.Security",
-    "expected_model_id": "ollama_deepseek"
+    "expected_model_id": "codex_primary"
   }
 ]

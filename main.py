@@ -6,6 +6,7 @@ from typing import Tuple
 from routing.router import route_request
 from routing.provider_adapter import ProviderAdapter
 from routing.model_selector import ModelSelector
+from routing.quality_gate import assess as quality_assess, should_escalate
 from memory.memory_manager import MemoryManager
 from metrics.metrics_engine import MetricsEngine
 
@@ -51,16 +52,36 @@ def orchestrate(user_input: str) -> None:
     decision = routing["decision"]
     model_id = routing["model_id"]
 
-    print(f"  Intent    : {intent}")
-    print(f"  Model     : {model_id}  [{decision}]  confidence={routing['confidence']:.2f}")
+    complexity = routing.get("complexity", "low")
+    escalation_reason = routing.get("escalation_reason")
 
-    escalation_used = (
-        model_id == "claude_architect"
-        and "Architecture" not in intent
-        and "Review.Architecture" != intent
-    )
+    print(f"  Intent    : {intent}  [{complexity} complexity]")
+    print(f"  Model     : {model_id}  [{decision}]  confidence={routing['confidence']:.2f}")
+    if escalation_reason:
+        print(f"  Escalated : {escalation_reason}")
+
+    escalation_used = bool(escalation_reason)
+    quality_escalation = False
 
     result, success, fallback_used = run_with_retry(model_id, user_input)
+
+    # ── Quality gate: score local results and retry on cloud if bad ──────────
+    LOCAL_IDS = {
+        "ollama_qwen_coder", "ollama_deepseek", "ollama_gemma",
+        "ollama_qwen_fast", "ollama_llava", "ollama_qwen",
+    }
+    if success and model_id in LOCAL_IDS:
+        q_score, q_reason = quality_assess(user_input, result, model_id)
+        if should_escalate(q_score):
+            print(f"\n  ⚠ Quality gate: score={q_score:.2f} — {q_reason}")
+            print(f"  Retrying with cloud model (codex_primary)...")
+            cloud_result, cloud_success, _ = run_with_retry("codex_primary", user_input)
+            if cloud_success:
+                result = cloud_result
+                quality_escalation = True
+                print(f"  ✓ Cloud retry succeeded.")
+        else:
+            print(f"  Quality gate: score={q_score:.2f} ✓")
 
     if decision == "REVIEW" and success:
         print("  L3 Governor: reviewing specialist output...")
@@ -88,7 +109,8 @@ def orchestrate(user_input: str) -> None:
         "escalation_used": escalation_used,
         "tokens_in":       tokens_in,
         "tokens_out":      tokens_out,
-        "notes":           f"Decision: {decision}",
+        "quality_escalation": quality_escalation,
+        "notes":           f"Decision: {decision}" + (f" | escalated: {escalation_reason}" if escalation_reason else ""),
     })
 
     print(f"\n{result}")
