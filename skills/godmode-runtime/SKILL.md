@@ -7,26 +7,44 @@ description: Local-first AI routing runtime. Routes prompts to the best model (O
 
 ## How to invoke
 
-When the user asks you to run something through godmode, or wants to route a task to a local model, execute the CLI directly via Bash:
+Before running any godmode command, resolve the CLI path:
 
 ```bash
-python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py run "the user's prompt"
+# Resolve godmode_cli.py — checks env var, current dir, and common install locations
+GODMODE_CLI=$(python3 -c "
+import os, sys
+candidates = [
+    os.environ.get('GODMODE_PATH', ''),
+    'godmode_cli.py',
+    os.path.expanduser('~/godmode/godmode_cli.py'),
+    os.path.expanduser('~/Documents/godmode/godmode_cli.py'),
+    os.path.expanduser('~/projects/godmode/godmode_cli.py'),
+    os.path.expanduser('~/dev/godmode/godmode_cli.py'),
+]
+found = next((p for p in candidates if p and os.path.isfile(p)), None)
+print(found or '')
+" 2>/dev/null)
+
+if [ -z "$GODMODE_CLI" ]; then
+  echo "godmode not found. Set GODMODE_PATH=/path/to/godmode_cli.py in your environment."
+  exit 1
+fi
 ```
 
-For multi-turn sessions:
+Then run commands using `$GODMODE_CLI`:
+
 ```bash
-python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py run "prompt" --session <name>
+python3 "$GODMODE_CLI" run "the user's prompt"
+python3 "$GODMODE_CLI" run "prompt" --session <name>   # multi-turn
+python3 "$GODMODE_CLI" stats                           # savings dashboard
+python3 "$GODMODE_CLI" models                          # list available models
+python3 "$GODMODE_CLI" session list                    # list sessions
 ```
 
-Other useful commands to run on behalf of the user:
-```bash
-python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py stats       # show savings dashboard
-python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py models      # list available models
-python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py session list # list sessions
-```
-
-> **Permission note:** Bash execution of `godmode_cli.py` must be allowed in Claude Code settings.
-> Add this rule: `Bash(python3 /Users/ronvaldoz/Documents/godmode/godmode_cli.py *)`
+> **Permission note:** Add a Bash allow rule in Claude Code settings for the resolved path, e.g.:
+> `Bash(python3 /your/path/to/godmode_cli.py *)`
+>
+> Or set `GODMODE_PATH=/path/to/godmode_cli.py` in your shell profile so the skill finds it automatically.
 
 Godmode is a local-first AI routing runtime. It classifies the intent of any prompt, matches required capabilities to a model registry, and executes — preferring free local Ollama models over paid cloud APIs. After every session it shows how much you saved.
 
