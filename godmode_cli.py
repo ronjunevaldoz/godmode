@@ -1,105 +1,85 @@
 #!/usr/bin/env python3
-"""
-Godmode CLI Tool for managing AI system
-"""
+"""Godmode CLI — AI routing runtime with local-first cost savings."""
 
-import os
-import sys
 import json
-import subprocess
+import sys
 from pathlib import Path
 
-def install_skills():
-    """Install Godmode skills and configurations"""
-    print("Installing Godmode skills...")
-    
-    # Create skills directory if it doesn't exist
-    skills_dir = Path("skills")
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Sample skills configuration
-    skills_config = {
-        "skills": [
-            {
-                "name": "code_generation",
-                "description": "Generate code solutions",
-                "provider": "ollama_qwen"
-            },
-            {
-                "name": "documentation",
-                "description": "Create documentation",
-                "provider": "ollama_llama3"
-            },
-            {
-                "name": "analysis",
-                "description": "Data analysis and insights",
-                "provider": "ollama_gemma4"
-            }
-        ],
-        "default_provider": "ollama_qwen"
-    }
-    
-    # Save skills configuration
-    with open(skills_dir / "godmode_skills.json", "w") as f:
-        json.dump(skills_config, f, indent=2)
-    
-    print("✓ Godmode skills installed successfully")
-    print("Skills configuration saved to skills/godmode_skills.json")
 
-def list_skills():
-    """List all available skills"""
-    skills_dir = Path("skills")
-    
-    if not skills_dir.exists():
-        print("No skills directory found. Run 'install-skills' first.")
-        return
-    
-    # List skill files
-    skill_files = list(skills_dir.glob("*.md"))
-    
-    if not skill_files:
-        print("No skills found in skills/")
-        return
-    
-    print("\nAvailable Skills:")
-    print("=" * 50)
-    
-    for skill_file in skill_files:
-        try:
-            with open(skill_file, 'r') as f:
-                content = f.read()
-                # Extract skill name from filename
-                skill_name = skill_file.stem.replace('_', ' ').title()
-                print(f"• {skill_name}")
-                # Show first line of description if available
-                lines = content.split('\n')
-                for line in lines:
-                    if line.startswith('## Description'):
-                        desc_line = next((l for l in lines[lines.index(line)+1:] if l.strip()), "")
-                        if desc_line:
-                            print(f"  {desc_line}")
-                        break
-                print()
-        except Exception as e:
-            print(f"Error reading {skill_file}: {e}")
+def cmd_run(args: list[str]) -> None:
+    if not args:
+        print("Usage: python3 godmode_cli.py run 'your prompt'")
+        sys.exit(1)
+    from main import orchestrate
+    orchestrate(" ".join(args))
 
-def main():
-    """Main CLI entry point"""
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "install-skills":
-            install_skills()
-        elif sys.argv[1] == "skills":
-            list_skills()
-        else:
-            print("Godmode CLI Tool")
-            print("Usage: python godmode_cli.py install-skills")
-            print("       python godmode_cli.py skills")
-            print("       python godmode_cli.py --help")
-    else:
-        print("Godmode CLI Tool")
-        print("Usage: python godmode_cli.py install-skills")
-        print("       python godmode_cli.py skills")
-        print("       python godmode_cli.py --help")
+
+def cmd_stats(_args: list[str]) -> None:
+    from memory.memory_manager import MemoryManager
+    from metrics.metrics_engine import MetricsEngine
+    print(MetricsEngine(MemoryManager()).generate_report())
+
+
+def cmd_eval(_args: list[str]) -> None:
+    from evaluation.run_routing_eval import run_eval
+    run_eval()
+
+
+def cmd_clear(_args: list[str]) -> None:
+    log_path = Path("memory/task_logs.json")
+    log_path.write_text("[]")
+    print("✓ Memory cleared.")
+
+
+def cmd_models(_args: list[str]) -> None:
+    """Show all local Ollama models and their assigned roles."""
+    import requests, os
+    base = os.getenv("OLLAMA_BASE_URL", "https://ron-local-home.duckdns.org/ollama")
+    base = base.replace("/api/chat", "")
+    try:
+        data = requests.get(f"{base}/api/tags", timeout=5).json()
+    except Exception as e:
+        print(f"Cannot reach Ollama: {e}")
+        return
+
+    from agents.ollama_utility import LOCAL_MODEL_ROLES as ROLES
+    print("\n  Available Ollama models:\n")
+    print(f"  {'Model':<30} {'Size':>6}   Role")
+    print("  " + "─" * 65)
+    for m in data.get("models", []):
+        name = m["name"]
+        size = f"{m.get('size', 0) / 1e9:.1f}GB"
+        role = ROLES.get(name, "—")
+        tag  = " ◀ assigned" if role != "—" else ""
+        print(f"  {name:<30} {size:>6}   {role}{tag}")
+    print()
+
+
+COMMANDS = {
+    "run":    (cmd_run,    "Route and execute a prompt"),
+    "stats":  (cmd_stats,  "Token savings and routing dashboard"),
+    "eval":   (cmd_eval,   "Run routing accuracy evaluation"),
+    "clear":  (cmd_clear,  "Reset memory / task logs"),
+    "models": (cmd_models, "List Ollama models and their roles"),
+}
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help"):
+        print("\n  godmode_cli.py <command> [args]\n")
+        for name, (_, desc) in COMMANDS.items():
+            print(f"    {name:<10} {desc}")
+        print()
+        return
+
+    cmd = args[0]
+    if cmd not in COMMANDS:
+        print(f"Unknown command: {cmd!r}. Run with --help.")
+        sys.exit(1)
+
+    COMMANDS[cmd][0](args[1:])
+
 
 if __name__ == "__main__":
     main()

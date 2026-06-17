@@ -1,37 +1,140 @@
 models:
+  # ── LOCAL MODELS (cost: $0) ──────────────────────────────────────────────
+
+  ollama_qwen_coder:
+    provider: ollama
+    model: qwen3-coder:30b
+    role: code_review
+    capabilities:
+      - code_review
+      - unit_test_generation
+      - bug_fixing
+      - code_improvement
+      - code_execution
+      - repo_awareness
+      - debugging
+      - refactoring
+    context_window: 32000
+    cost_tier: low
+    latency_tier: medium
+    privacy: local
+    multimodal: false
+    is_paid: false
+    enabled: true
+
+  ollama_deepseek:
+    provider: ollama
+    model: deepseek-r1:14b
+    role: security_audit
+    capabilities:
+      - security_audit
+      - prompt_refinement
+      - long_context_reasoning
+      - cheap_batch_processing
+      - classification
+    context_window: 32000
+    cost_tier: low
+    latency_tier: medium
+    privacy: local
+    multimodal: false
+    is_paid: false
+    enabled: true
+
+  ollama_gemma:
+    provider: ollama
+    model: gemma4:12b
+    role: research
+    capabilities:
+      - research_synthesis
+      - documentation_generation
+      - summarization
+      - cheap_batch_processing
+    context_window: 32000
+    cost_tier: low
+    latency_tier: low
+    privacy: local
+    multimodal: false
+    is_paid: false
+    enabled: true
+
+  ollama_qwen_fast:
+    provider: ollama
+    model: qwen3:8b
+    role: assistant
+    capabilities:
+      - general_assistance
+      - classification
+      - summarization
+      - private_local_processing
+      - cheap_batch_processing
+    context_window: 32000
+    cost_tier: low
+    latency_tier: low
+    privacy: local
+    multimodal: false
+    is_paid: false
+    enabled: true
+
+  ollama_llava:
+    provider: ollama
+    model: llava:latest
+    role: vision
+    capabilities:
+      - multimodal_understanding
+      - ui_analysis
+      - image_reasoning
+    context_window: 4096
+    cost_tier: low
+    latency_tier: medium
+    privacy: local
+    multimodal: true
+    is_paid: false
+    enabled: true
+
+  # ── CLOUD MODELS (cost: per token) ───────────────────────────────────────
+
+  claude_architect:
+    provider: anthropic
+    model: claude-opus-4-8
+    role: architect
+    capabilities:
+      - architecture_review
+      - final_validation
+      - long_context_reasoning
+      - documentation_generation
+    context_window: 200000
+    cost_tier: high
+    latency_tier: medium
+    privacy: cloud
+    multimodal: false
+    is_paid: true
+    cost_per_1k_input: 0.015
+    cost_per_1k_output: 0.075
+    enabled: true
+
   codex_primary:
     provider: openai
-    model: codex
+    model: gpt-4o
+    role: engineer
     capabilities:
       - code_execution
       - repo_awareness
       - debugging
       - refactoring
-    context_window: 200000
+    context_window: 128000
     cost_tier: high
     latency_tier: medium
     privacy: cloud
     multimodal: false
-    enabled: true
-
-  claude_architect:
-    provider: anthropic
-    model: claude-sonnet-4
-    capabilities:
-      - long_context_reasoning
-      - architecture_review
-      - documentation_generation
-      - final_validation
-    context_window: 200000
-    cost_tier: high
-    latency_tier: medium
-    privacy: cloud
-    multimodal: false
+    is_paid: true
+    cost_per_1k_input: 0.0025
+    cost_per_1k_output: 0.010
     enabled: true
 
   gemini_vision:
     provider: google
     model: gemini-2.5-pro
+    role: vision
     capabilities:
       - multimodal_understanding
       - ui_analysis
@@ -42,28 +145,28 @@ models:
     latency_tier: medium
     privacy: cloud
     multimodal: true
-    enabled: true
-
-  ollama_qwen:
-    provider: ollama
-    model: qwen2.5-coder:14b
-    capabilities:
-      - private_local_processing
-      - cheap_batch_processing
-      - classification
-      - summarization
-    context_window: 32000
-    cost_tier: low
-    latency_tier: low
-    privacy: local
-    multimodal: false
-    enabled: true
+    is_paid: true
+    cost_per_1k_input: 0.00125
+    cost_per_1k_output: 0.010
+    enabled: false
 
 fallbacks:
+  ollama_qwen_coder:
+    - codex_primary
+    - claude_architect
+  ollama_deepseek:
+    - claude_architect
+  ollama_gemma:
+    - claude_architect
+  ollama_qwen_fast:
+    - ollama_gemma
+    - claude_architect
+  ollama_llava:
+    - gemini_vision
+    - claude_architect
   codex_primary:
     - claude_architect
   gemini_vision:
+    - ollama_llava
     - claude_architect
-  ollama_qwen:
-    - codex_primary
-    - claude_architect
+  claude_architect: []

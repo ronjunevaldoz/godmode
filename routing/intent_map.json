@@ -1,21 +1,39 @@
 {
-  "Implementation.Android": ["code_execution", "repo_awareness"],
-  "Implementation.KMP": ["code_execution", "repo_awareness"],
-  "Implementation.JNI": ["code_execution", "repo_awareness"],
-  "Implementation.Backend": ["code_execution", "repo_awareness"],
-  "Implementation.DevOps": ["code_execution"],
-  "Implementation.Web": ["code_execution", "repo_awareness"],
-  "Architecture.System": ["architecture_review", "long_context_reasoning"],
-  "Architecture.Mobile": ["architecture_review", "long_context_reasoning"],
-  "Architecture.Agent": ["architecture_review", "long_context_reasoning"],
-  "Multimodal.UI": ["multimodal_understanding"],
-  "Multimodal.Image": ["multimodal_understanding"],
-  "Utility.Summary": ["cheap_batch_processing", "private_local_processing"],
-  "Utility.Classification": ["cheap_batch_processing", "private_local_processing"],
-  "Utility.Extraction": ["cheap_batch_processing", "private_local_processing"],
-  "Documentation.Spec": ["documentation_generation", "long_context_reasoning"],
-  "Documentation.Markdown": ["documentation_generation"],
-  "Review.Code": ["final_validation", "architecture_review"],
-  "Review.Architecture": ["final_validation", "architecture_review"],
-  "UNKNOWN": ["long_context_reasoning"]
+  "Implementation.Android":   ["code_execution", "repo_awareness"],
+  "Implementation.KMP":       ["code_execution", "repo_awareness"],
+  "Implementation.JNI":       ["code_execution", "repo_awareness"],
+  "Implementation.Backend":   ["code_execution", "repo_awareness"],
+  "Implementation.DevOps":    ["code_execution"],
+  "Implementation.Web":       ["code_execution", "repo_awareness"],
+
+  "Architecture.System":      ["architecture_review", "long_context_reasoning"],
+  "Architecture.Mobile":      ["architecture_review", "long_context_reasoning"],
+  "Architecture.Agent":       ["architecture_review", "long_context_reasoning"],
+
+  "Review.Code":              ["code_review"],
+  "Review.Security":          ["security_audit"],
+  "Review.Architecture":      ["architecture_review", "final_validation"],
+
+  "Test.Unit":                ["unit_test_generation", "code_execution"],
+
+  "Fix.Bug":                  ["bug_fixing", "code_execution"],
+
+  "Improve.Code":             ["code_improvement"],
+  "Improve.Prompt":           ["prompt_refinement"],
+
+  "Multimodal.UI":            ["multimodal_understanding", "ui_analysis"],
+  "Multimodal.Image":         ["multimodal_understanding", "image_reasoning"],
+
+  "Utility.Summary":          ["summarization", "cheap_batch_processing"],
+  "Utility.Classification":   ["classification", "cheap_batch_processing"],
+  "Utility.Extraction":       ["cheap_batch_processing", "private_local_processing"],
+
+  "Documentation.Spec":       ["documentation_generation", "long_context_reasoning"],
+  "Documentation.Markdown":   ["documentation_generation"],
+
+  "Research.General":         ["research_synthesis"],
+
+  "Assistant.General":        ["general_assistance"],
+
+  "UNKNOWN":                  ["long_context_reasoning"]
 }

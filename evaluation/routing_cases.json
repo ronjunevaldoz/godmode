@@ -2,7 +2,7 @@
   {
     "prompt": "Fix the memory leak in the JNI layer",
     "expected_intent": "Implementation.JNI",
-    "expected_model_id": "codex_primary"
+    "expected_model_id": "ollama_qwen_coder"
   },
   {
     "prompt": "Design the overall system architecture for the new agent",
@@ -12,17 +12,17 @@
   {
     "prompt": "Does this UI screenshot look correct based on the design?",
     "expected_intent": "Multimodal.UI",
-    "expected_model_id": "gemini_vision"
+    "expected_model_id": "ollama_llava"
   },
   {
     "prompt": "Summarize these local logs from the last 24 hours",
     "expected_intent": "Utility.Summary",
-    "expected_model_id": "ollama_qwen"
+    "expected_model_id": "ollama_gemma"
   },
   {
-    "prompt": "Review the PR for security vulnerabilities",
+    "prompt": "Review the PR for code quality issues",
     "expected_intent": "Review.Code",
-    "expected_model_id": "claude_architect"
+    "expected_model_id": "ollama_qwen_coder"
   },
   {
     "prompt": "Create a technical spec for the Android SDK integration",
@@ -32,6 +32,26 @@
   {
     "prompt": "Refactor the KMP shared module for better performance",
     "expected_intent": "Implementation.KMP",
-    "expected_model_id": "codex_primary"
+    "expected_model_id": "ollama_qwen_coder"
+  },
+  {
+    "prompt": "Write unit tests for the authentication service",
+    "expected_intent": "Test.Unit",
+    "expected_model_id": "ollama_qwen_coder"
+  },
+  {
+    "prompt": "Find and fix the null pointer exception in the payment flow",
+    "expected_intent": "Fix.Bug",
+    "expected_model_id": "ollama_qwen_coder"
+  },
+  {
+    "prompt": "Research best practices for distributed tracing in microservices",
+    "expected_intent": "Research.General",
+    "expected_model_id": "ollama_gemma"
+  },
+  {
+    "prompt": "Audit this code for security vulnerabilities",
+    "expected_intent": "Review.Security",
+    "expected_model_id": "ollama_deepseek"
   }
 ]
