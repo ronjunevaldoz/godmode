@@ -1,14 +1,14 @@
 """
-System-aware Ollama model recommender.
+Server-aware Ollama model recommender.
 
-Reads available RAM, queries Ollama for pulled models, scores each model
-per role, and returns the best fit. Can optionally patch model_registry.yaml.
+Queries Ollama for pulled models and scores each per role.
+Set OLLAMA_SERVER_RAM_GB in your environment to match the dedicated
+server's RAM (or VRAM for GPU servers). Without it the recommender
+falls back to probing the largest loaded model as a lower-bound estimate.
 """
 
 import logging
 import os
-import platform
-import subprocess
 import yaml
 import requests
 
@@ -20,8 +20,12 @@ OLLAMA_BASE_URL: str = os.getenv(
 
 REGISTRY_PATH = "configs/model_registry.yaml"
 
-# How much RAM (GB) to reserve for the OS + other processes
-OS_OVERHEAD_GB = 3.5
+# Set OLLAMA_SERVER_RAM_GB to your dedicated server's usable RAM/VRAM in GB.
+# Example in .env:  OLLAMA_SERVER_RAM_GB=48
+_SERVER_RAM_ENV = os.getenv("OLLAMA_SERVER_RAM_GB")
+
+# How much RAM to reserve for the Ollama daemon + OS overhead on the server
+OS_OVERHEAD_GB = 4.0
 
 # Comfort bands — model must fit within available RAM at these ratios
 # "safe"    → model ≤ 80% of available (leaves headroom for context)
@@ -53,28 +57,40 @@ QUALITY_SENSITIVE = {"security_audit", "bug_fix", "code_review", "prompt_quality
 SPEED_SENSITIVE = {"assistant", "classification", "summarization"}
 
 
-def _get_ram_gb() -> float:
-    """Return total system RAM in GB."""
-    try:
-        if platform.system() == "Darwin":
-            result = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True)
-            return int(result.strip()) / 1e9
-        # Linux
-        with open("/proc/meminfo") as f:
-            for line in f:
-                if line.startswith("MemTotal"):
-                    return int(line.split()[1]) / 1e6
-    except Exception as e:
-        logger.warning(f"Could not read RAM: {e}")
-    return 16.0  # safe default
+def _get_server_ram_gb(pulled: list[dict]) -> tuple[float, str]:
+    """
+    Return (ram_gb, source) for the Ollama server.
 
+    Priority:
+      1. OLLAMA_SERVER_RAM_GB env var (user-configured, most accurate)
+      2. /api/ps  — Ollama's "running models" endpoint exposes size_vram
+         if a model is currently loaded; we can infer minimum capacity
+      3. Largest pulled model × 1.25 as a conservative lower-bound guess
+    """
+    if _SERVER_RAM_ENV:
+        return float(_SERVER_RAM_ENV), f"OLLAMA_SERVER_RAM_GB={_SERVER_RAM_ENV}"
 
-def _is_apple_silicon() -> bool:
+    # Try /api/ps for currently loaded model sizes
     try:
-        result = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True)
-        return "Apple" in result
+        resp = requests.get(f"{OLLAMA_BASE_URL}/api/ps", timeout=5)
+        if resp.ok:
+            running = resp.json().get("models", [])
+            if running:
+                total_vram = sum(m.get("size_vram", 0) for m in running)
+                if total_vram:
+                    # Loaded models + overhead = estimated server RAM
+                    estimate = total_vram / 1e9 / 0.85
+                    return estimate, "inferred from /api/ps (running models)"
     except Exception:
-        return False
+        pass
+
+    # Fall back: largest model that exists must fit in server RAM
+    if pulled:
+        largest = max(m["size_gb"] for m in pulled)
+        estimate = largest / 0.75  # assume model takes 75% of available RAM when loaded
+        return estimate, f"estimated from largest model ({largest:.1f} GB)"
+
+    return 32.0, "default fallback"
 
 
 def _get_pulled_models() -> list[dict]:
@@ -145,13 +161,12 @@ def recommend(roles: list[str] | None = None) -> dict[str, dict]:
     Returns dict: role → {model, size_gb, band, score, reason}
     """
     roles = roles or list(ROLE_AFFINITY.keys())
-    ram_gb = _get_ram_gb()
-    unified = _is_apple_silicon()
-    available_gb = ram_gb - OS_OVERHEAD_GB
-
     pulled = _get_pulled_models()
     if not pulled:
         return {}
+
+    ram_gb, _ = _get_server_ram_gb(pulled)
+    available_gb = ram_gb - OS_OVERHEAD_GB
 
     results: dict[str, dict] = {}
     for role in roles:
@@ -191,10 +206,12 @@ def _explain(model: str, role: str, band: str) -> str:
 
 
 def generate_report() -> str:
-    ram_gb     = _get_ram_gb()
-    unified    = _is_apple_silicon()
-    available  = ram_gb - OS_OVERHEAD_GB
     pulled     = _get_pulled_models()
+    ram_gb, ram_source = _get_server_ram_gb(pulled)
+    available  = ram_gb - OS_OVERHEAD_GB
+
+    server_url = OLLAMA_BASE_URL.replace("/api/chat", "")
+    ram_hint   = "" if _SERVER_RAM_ENV else "  ⚠ Set OLLAMA_SERVER_RAM_GB for accurate fit analysis"
 
     lines = [
         "",
@@ -202,11 +219,13 @@ def generate_report() -> str:
         "║          Godmode Model Recommendation Report             ║",
         "╚══════════════════════════════════════════════════════════╝",
         "",
-        f"  System : {'Apple Silicon (unified memory)' if unified else platform.processor()}",
-        f"  RAM    : {ram_gb:.0f} GB total  →  {available:.1f} GB available for models",
-        "",
-        "  Pulled models:",
+        f"  Server : {server_url}",
+        f"  RAM    : ~{ram_gb:.0f} GB  ({ram_source})",
+        f"  Usable : ~{available:.1f} GB  (after {OS_OVERHEAD_GB:.0f} GB server overhead)",
     ]
+    if ram_hint:
+        lines.append(ram_hint)
+    lines += ["", "  Pulled models:"]
 
     for m in sorted(pulled, key=lambda x: x["size_gb"], reverse=True):
         band  = _fit_band(m["size_gb"], available)
