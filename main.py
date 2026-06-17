@@ -14,26 +14,50 @@ _FILE_RE = re.compile(
 _MAX_FILE_CHARS = 12_000
 
 
-def _inject_file_context(prompt: str) -> str:
-    """Scan prompt for file paths, read any that exist, prepend their content."""
+def _build_file_context(prompt: str, explicit_files: list[str]) -> str:
+    """Prepend file contents to the prompt.
+
+    Explicit --file paths are loaded first (trusted, no regex needed).
+    Any file paths embedded in the prompt text are picked up as a convenience
+    fallback — but --file is always the recommended way.
+    """
     found: list[str] = []
     seen: set[str] = set()
+
+    # 1. Explicit --file arguments
+    for path_str in explicit_files:
+        if path_str in seen:
+            continue
+        seen.add(path_str)
+        p = Path(path_str)
+        if not p.is_file():
+            p = Path.cwd() / path_str
+        if p.is_file():
+            try:
+                content = p.read_text(errors="replace")[:_MAX_FILE_CHARS]
+                found.append(f'<file path="{path_str}">\n{content}\n</file>')
+            except OSError:
+                print(f"  [warn] Could not read file: {path_str}")
+        else:
+            print(f"  [warn] File not found: {path_str}")
+
+    # 2. Regex scan of prompt text (convenience fallback)
     for match in _FILE_RE.finditer(prompt):
         path_str = match.group(1)
         if path_str in seen:
             continue
         seen.add(path_str)
-        p = Path(path_str)  # already resolves against CWD
+        p = Path(path_str)
         if p.is_file():
             try:
                 content = p.read_text(errors="replace")[:_MAX_FILE_CHARS]
-                found.append(f"<file path=\"{path_str}\">\n{content}\n</file>")
+                found.append(f'<file path="{path_str}">\n{content}\n</file>')
             except OSError:
                 pass
+
     if not found:
         return prompt
-    file_block = "\n\n".join(found)
-    return f"{file_block}\n\n{prompt}"
+    return "\n\n".join(found) + "\n\n" + prompt
 
 _GODMODE_DIR = Path(__file__).parent
 _CODE_INTENTS = {"Review", "Fix", "Improve", "Architecture", "Generate"}
@@ -158,7 +182,7 @@ def run_with_retry(model_id: str, prompt: str, context: dict | None = None, stre
     return "All attempts and fallbacks failed.", False, fallback_used
 
 
-def orchestrate(user_input: str, session: str | None = None) -> None:
+def orchestrate(user_input: str, session: str | None = None, files: list[str] | None = None) -> None:
     print(f"\n{'─' * 60}")
     start = time.time()
 
@@ -184,7 +208,7 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
     review_required   = routing.get("review_required", False)
 
     # Enrich execution prompt with file contents + project context
-    execution_prompt = _inject_file_context(user_input)
+    execution_prompt = _build_file_context(user_input, files or [])
     files_injected = execution_prompt != user_input
 
     project_ctx = _load_project_context(intent)
@@ -196,7 +220,8 @@ def orchestrate(user_input: str, session: str | None = None) -> None:
     print(f"  Intent    : {intent}  [{complexity} complexity]")
     print(f"  Model     : {model_id}  [{decision}]  confidence={routing['confidence']:.2f}")
     if files_injected:
-        print(f"  Files     : injected file context into prompt")
+        injected = files or ["(from prompt)"]
+        print(f"  Files     : {', '.join(injected)}")
     if project_ctx:
         print(f"  Context   : injected GODMODE_CONTEXT.md")
     if escalation_reason:

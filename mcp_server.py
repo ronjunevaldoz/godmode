@@ -57,15 +57,21 @@ async def list_tools() -> list[Tool]:
             name="run",
             description=(
                 "Route a prompt through godmode and execute it. "
-                "Classifies intent, selects the best local Ollama model, runs it, "
-                "and returns the result with routing metadata."
+                "Pass 'files' to inject source code as context — always use this "
+                "for code review, security audit, bug fix, or refactor tasks. "
+                "Without files the model has no code to read and will hallucinate."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "prompt": {
                         "type": "string",
-                        "description": "The prompt to route and execute",
+                        "description": "The task prompt (e.g. 'security review', 'find bugs', 'refactor for readability')",
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "File paths relative to the project root to inject as context (e.g. ['src/services/SalaryServiceImpl.kt'])",
                     },
                 },
                 "required": ["prompt"],
@@ -76,18 +82,23 @@ async def list_tools() -> list[Tool]:
             description=(
                 "Route and execute a prompt with persistent multi-turn history. "
                 "Prior turns in the session are injected as context. "
-                "Use the same session name across calls to maintain continuity."
+                "Pass 'files' to inject source code — required for code tasks."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "prompt": {
                         "type": "string",
-                        "description": "The prompt to route and execute",
+                        "description": "The task prompt",
                     },
                     "session": {
                         "type": "string",
                         "description": "Session name for conversation history (e.g. 'myproject')",
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "File paths relative to project root to inject as context",
                     },
                 },
                 "required": ["prompt", "session"],
@@ -112,9 +123,15 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     if name == "run":
-        output = _run_cli("run", arguments["prompt"])
+        cmd = ["run", arguments["prompt"]]
+        for f in arguments.get("files", []):
+            cmd += ["--file", f]
+        output = _run_cli(*cmd)
     elif name == "run_session":
-        output = _run_cli("run", arguments["prompt"], "--session", arguments["session"])
+        cmd = ["run", arguments["prompt"], "--session", arguments["session"]]
+        for f in arguments.get("files", []):
+            cmd += ["--file", f]
+        output = _run_cli(*cmd)
     elif name == "stats":
         output = _run_cli("stats")
     elif name == "models":

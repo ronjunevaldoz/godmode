@@ -16,18 +16,29 @@ except ImportError:
 
 def cmd_run(args: list[str]) -> None:
     session: str | None = None
-    if "--session" in args:
-        idx = args.index("--session")
-        if idx + 1 >= len(args):
-            print("Usage: godmode_cli.py run 'prompt' --session <name>")
-            sys.exit(1)
-        session = args[idx + 1]
-        args = args[:idx] + args[idx + 2:]
-    if not args:
-        print("Usage: python3 godmode_cli.py run 'your prompt' [--session <name>]")
+    files: list[str] = []
+
+    # Parse flags, collect remaining args as the prompt
+    prompt_parts: list[str] = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--session" and i + 1 < len(args):
+            session = args[i + 1]
+            i += 2
+        elif args[i] == "--file" and i + 1 < len(args):
+            files.append(args[i + 1])
+            i += 2
+        else:
+            prompt_parts.append(args[i])
+            i += 1
+
+    if not prompt_parts:
+        print("Usage: python3 godmode_cli.py run 'prompt' [--file path] [--session name]")
+        print("       --file can be repeated for multiple files")
         sys.exit(1)
+
     from main import orchestrate
-    orchestrate(" ".join(args), session=session)
+    orchestrate(" ".join(prompt_parts), session=session, files=files or None)
 
 
 def cmd_stats(_args: list[str]) -> None:
@@ -282,7 +293,7 @@ def cmd_report(_args: list[str]) -> None:
 
 COMMANDS = {
     "setup":     (cmd_setup,     "First-run setup wizard — configure Ollama and assign models"),
-    "run":       (cmd_run,       "Route and execute a prompt  [--session <name> for multi-turn]"),
+    "run":       (cmd_run,       "Route and execute a prompt  [--file path] [--session name]"),
     "session":   (cmd_session,   "Manage conversation sessions  [list|show <name>|clear <name>]"),
     "stats":     (cmd_stats,     "Token savings and routing dashboard"),
     "report":    (cmd_report,    "Show flagged-run failure log grouped by intent"),

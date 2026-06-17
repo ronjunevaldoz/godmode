@@ -59,42 +59,51 @@ The wizard will:
 
 ## Running prompts
 
+### General tasks (no file needed)
+
 ```bash
-python3 godmode_cli.py run "Fix the null pointer in the payment handler"
-python3 godmode_cli.py run "Summarise this log file and find anomalies"
-python3 godmode_cli.py run "Design a microservices auth architecture"
+python3 "$GODMODE_CLI" run "Summarise this log output and find anomalies"
+python3 "$GODMODE_CLI" run "Design a microservices auth architecture"
+python3 "$GODMODE_CLI" run "Explain the repository pattern with examples"
 ```
 
-Each run prints the routed model, mode tag (`[SKILL]` / `[STANDALONE]`), and the result. High-stakes tasks (bug fixes, security reviews) are wrapped in a `NEEDS REVIEW` block in skill mode.
+### Code tasks — always use --file
 
-### REQUIRED for code tasks: always pass the file path with extension
-
-Godmode reads any file path in the prompt and injects the code before sending to the model.
-**Without a file path the model has no code to read — it will hallucinate generic advice.**
-
-Before calling godmode on any code task:
-1. Identify the file path relative to the project root (e.g. `src/services/SalaryServiceImpl.kt`)
-2. Include that path literally in the prompt — with the file extension
+For any review, bug fix, refactor, or security audit, pass the file explicitly with `--file`.
+The model has no access to the filesystem — without `--file` it will hallucinate generic advice.
 
 ```bash
-# Correct — godmode reads SalaryServiceImpl.kt and injects it
-python3 "$GODMODE_CLI" run "security review on src/services/SalaryServiceImpl.kt"
-python3 "$GODMODE_CLI" run "find bugs in app/routes/auth.py"
-python3 "$GODMODE_CLI" run "refactor utils/parser.ts for readability"
+# Single file
+python3 "$GODMODE_CLI" run "security review" --file src/services/SalaryServiceImpl.kt
+python3 "$GODMODE_CLI" run "find bugs and suggest fixes" --file app/routes/auth.py
+python3 "$GODMODE_CLI" run "refactor for readability" --file utils/parser.ts
 
-# WRONG — class name only, no extension → no file injected → hallucinated output
+# Multiple files
+python3 "$GODMODE_CLI" run "compare these two implementations" \
+  --file src/old/PaymentService.kt \
+  --file src/new/PaymentService.kt
+
+# With session (multi-turn on the same file)
+python3 "$GODMODE_CLI" run "security review" --file src/SalaryServiceImpl.kt --session salary-review
+python3 "$GODMODE_CLI" run "now fix the issues you found" --file src/SalaryServiceImpl.kt --session salary-review
+```
+
+The path must be relative to the directory you are running the command from.
+If you have the file open in your editor, use its path relative to the project root.
+
+**Never do this** — class name without `--file` gives the model nothing to work with:
+```bash
+# WRONG — model has no code, will hallucinate
 python3 "$GODMODE_CLI" run "review the SalaryServiceImpl for security issues"
-python3 "$GODMODE_CLI" run "security review on PaymentService"
 ```
-
-The file path must contain the extension (`.kt`, `.py`, `.ts`, `.java`, etc.).
-If you have the file open, use its path relative to the project root, not an absolute path.
 
 ## All commands
 
 ```bash
 python3 godmode_cli.py setup              # First-run wizard
-python3 godmode_cli.py run "prompt"       # Route and execute
+python3 godmode_cli.py run "prompt"                        # Route and execute
+python3 godmode_cli.py run "prompt" --file src/Foo.kt      # With file context
+python3 godmode_cli.py run "prompt" --file a.kt --file b.kt  # Multiple files
 python3 godmode_cli.py stats              # Savings dashboard + verdict
 python3 godmode_cli.py models             # List Ollama models and assigned roles
 python3 godmode_cli.py preset list        # RAM-tiered preset matrix
