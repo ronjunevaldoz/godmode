@@ -1,9 +1,131 @@
 ---
 name: godmode-runtime
-description: "Godmode runtime skill — use for any task that involves the godmode CLI or AI routing runtime. Covers: routing a prompt through godmode (python3 godmode_cli.py run), file-based code review with the --file flag to prevent model hallucinations, multi-turn sessions via --session, viewing token savings vs Claude Opus (stats command), configuring the Ollama server address, debugging NEEDS REVIEW quality warnings, adjusting routing thresholds or model registry assignments, running the godmode eval suite, or resetting memory. Invoke whenever the user mentions 'godmode', 'godmode_cli', '--file flag', 'NEEDS REVIEW', model routing, or local-first AI cost savings."
+description: >
+  Godmode is a local-first AI routing runtime that sends prompts to the
+  cheapest capable model — Ollama locally first, cloud only when needed.
+  Use this skill whenever the user wants to: run a prompt through godmode,
+  do a code review with --file to avoid hallucinations, start or resume a
+  --session, check token savings vs Claude Opus, configure the Ollama URL
+  or model registry, understand or fix a NEEDS REVIEW result, tune routing
+  thresholds, run the eval suite, or manage sessions. Also invoke when the
+  user mentions godmode_cli, local AI routing, or cost-saving model routing.
 ---
 
 # Godmode Runtime
+
+## What it does
+
+Godmode routes every prompt through a 3-layer pipeline:
+
+1. **L1 Router** — classifies intent, resolves required capabilities, picks the cheapest model that can handle it (Ollama local first)
+2. **L2 Executor** — runs the model, streams output live, then scores quality 0–1 with a local judge
+3. **L3 Governor** — if score < 0.55, flags `⚠ NEEDS REVIEW` (skill mode) or retries with a cloud model (standalone mode)
+
+**Result:** You get fast, cheap answers for simple tasks. Hard tasks escalate automatically. Every run is tracked so you can see exactly how much you saved vs Claude Opus.
+
+---
+
+## Example use cases
+
+### 1. Code review without hallucinations
+You have a Kotlin service. You want a security review but the local model keeps suggesting Spring patterns that don't exist in your codebase.
+
+```bash
+# Always pass the file — model can't access your filesystem otherwise
+python3 "$GODMODE_CLI" run "check for authorization bypass and missing input validation" \
+  --file src/services/SalaryServiceImpl.kt
+```
+
+With `GODMODE_CONTEXT.md` in your project root declaring your stack (Kotlin + Ktor + MongoDB, no Spring), godmode injects it automatically. The model now reviews your actual code instead of inventing Java patterns.
+
+---
+
+### 2. Multi-turn code audit session
+You want to audit a service across multiple prompts without losing context.
+
+```bash
+python3 "$GODMODE_CLI" run "security review" --file src/PaymentService.kt --session payment-audit
+python3 "$GODMODE_CLI" run "now write the fixes for the issues you found" --file src/PaymentService.kt --session payment-audit
+python3 "$GODMODE_CLI" run "add unit tests for the fixed methods" --file src/PaymentService.kt --session payment-audit
+```
+
+Each turn remembers the previous exchange. The session is budget-trimmed to 8000 chars automatically.
+
+---
+
+### 3. Cross-file comparison
+You refactored a service and want to check for regressions between the old and new version.
+
+```bash
+python3 "$GODMODE_CLI" run "find any logic that was in the old version but is missing or changed in the new one" \
+  --file src/old/GuildService.kt \
+  --file src/new/GuildService.kt
+```
+
+---
+
+### 4. Track how much you've saved
+See how much cheaper godmode is vs always using Claude Opus or GPT-4o.
+
+```bash
+python3 "$GODMODE_CLI" stats
+```
+
+Output: total runs, tokens routed locally vs cloud, estimated savings in dollars, verdict (WINNING / PERFECT / WARNING).
+
+---
+
+### 5. Understand and fix a NEEDS REVIEW result
+The output came back wrapped in `⚠ NEEDS REVIEW`. The quality judge scored it below 0.55 — the model gave a low-confidence answer.
+
+```bash
+# Option 1: check what went wrong
+python3 "$GODMODE_CLI" report
+
+# Option 2: retry with cloud escalation
+GODMODE_MODE=standalone ANTHROPIC_API_KEY=... python3 "$GODMODE_CLI" run "your prompt" --file src/Foo.kt
+```
+
+`report` groups failures by intent and shows the average quality score and top failure reason per category.
+
+---
+
+### 6. Configure which model handles which task
+You just pulled a new model and want to assign it to code review tasks.
+
+```bash
+python3 "$GODMODE_CLI" models          # see what's pulled and what role each has
+python3 "$GODMODE_CLI" recommend       # get suggestions based on your pulled models
+python3 "$GODMODE_CLI" recommend --apply   # apply them to model_registry.yaml
+```
+
+Or edit `configs/model_registry.yaml` directly — the `routing/intent_map.json` maps intent categories to capability requirements.
+
+---
+
+### 7. Point godmode at a remote Ollama server
+Your Ollama is running on a different machine (e.g. a home server with a big GPU).
+
+```bash
+OLLAMA_BASE_URL=http://192.168.1.10:11434 python3 "$GODMODE_CLI" run "your prompt"
+```
+
+Or set it permanently in `.env.local` (created by `setup`):
+```
+OLLAMA_BASE_URL=http://192.168.1.10:11434
+```
+
+---
+
+### 8. General reasoning (no file needed)
+Not every task needs a file. Pure reasoning, architecture questions, and writing tasks route to the best available model automatically.
+
+```bash
+python3 "$GODMODE_CLI" run "design a rate-limiting strategy for a multi-tenant API with per-guild quotas"
+python3 "$GODMODE_CLI" run "explain the tradeoffs between CQRS and a simple service layer for this use case"
+```
+
+---
 
 ## Reducing hallucinations — read this first
 
