@@ -1,0 +1,82 @@
+[
+  {
+    "query": "run godmode on my PaymentService.kt and give me a security review — make sure to pass the file so deepseek doesn't hallucinate Spring again",
+    "should_trigger": true
+  },
+  {
+    "query": "use godmode to route this to the cheapest model that can handle it: 'summarize this 3-page architecture doc'",
+    "should_trigger": true
+  },
+  {
+    "query": "i want to see how much money i've saved by running godmode instead of claude opus — can you pull up the stats",
+    "should_trigger": true
+  },
+  {
+    "query": "godmode run 'refactor this for readability' --file src/services/GuildService.kt — do it now",
+    "should_trigger": true
+  },
+  {
+    "query": "I keep getting NEEDS REVIEW on my code tasks. how do i fix that and get a proper response from godmode",
+    "should_trigger": true
+  },
+  {
+    "query": "route this prompt through godmode with a session called 'auth-audit' and keep context between turns",
+    "should_trigger": true
+  },
+  {
+    "query": "my ollama server is at 192.168.1.10:11434 — how do i point godmode at it instead of localhost",
+    "should_trigger": true
+  },
+  {
+    "query": "i've got qwen3-coder:30b and deepseek-r1:14b pulled. which one should godmode use for code review tasks and how do i set that in the registry",
+    "should_trigger": true
+  },
+  {
+    "query": "godmode keeps escalating everything to claude cloud. i want it to stay local unless the quality score is really bad. how do i tune the threshold",
+    "should_trigger": true
+  },
+  {
+    "query": "run the godmode eval suite to see how accurate the routing is across my prompts",
+    "should_trigger": true
+  },
+  {
+    "query": "write me unit tests for this Kotlin data class — just use claude directly, I don't need godmode here",
+    "should_trigger": false
+  },
+  {
+    "query": "compare claude opus vs gpt-4o on this summarization benchmark — which one is better and cheaper",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to use ollama to run llama3 locally and chat with it from the terminal — how do I set that up",
+    "should_trigger": false
+  },
+  {
+    "query": "set up a github actions workflow to run my kotlin multiplatform tests on every PR",
+    "should_trigger": false
+  },
+  {
+    "query": "review this PR diff and tell me what's wrong with the auth logic in UserRepository.kt",
+    "should_trigger": false
+  },
+  {
+    "query": "i need a script that automatically routes api calls to different llm providers based on cost — can you write it from scratch in python",
+    "should_trigger": false
+  },
+  {
+    "query": "help me understand the intent classification in my langchain app — it's routing to the wrong chain for finance queries",
+    "should_trigger": false
+  },
+  {
+    "query": "how do i add a new tool to my claude desktop MCP server so it can call my internal API",
+    "should_trigger": false
+  },
+  {
+    "query": "my ollama model keeps timing out on long prompts — increase the context window in the modelfile",
+    "should_trigger": false
+  },
+  {
+    "query": "i want to track token usage across all my ai api calls in one dashboard — what's the best open source tool for that",
+    "should_trigger": false
+  }
+]

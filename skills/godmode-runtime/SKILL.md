@@ -1,6 +1,6 @@
 ---
 name: godmode-runtime
-description: Local-first AI routing runtime. Routes prompts to the best model (Ollama local or cloud) based on intent, capability, and cost. Tracks savings vs Claude Opus. Works inside Claude Desktop with no API keys needed.
+description: "Godmode runtime skill — use for any task that involves the godmode CLI or AI routing runtime. Covers: routing a prompt through godmode (python3 godmode_cli.py run), file-based code review with the --file flag to prevent model hallucinations, multi-turn sessions via --session, viewing token savings vs Claude Opus (stats command), configuring the Ollama server address, debugging NEEDS REVIEW quality warnings, adjusting routing thresholds or model registry assignments, running the godmode eval suite, or resetting memory. Invoke whenever the user mentions 'godmode', 'godmode_cli', '--file flag', 'NEEDS REVIEW', model routing, or local-first AI cost savings."
 ---
 
 # Godmode Runtime

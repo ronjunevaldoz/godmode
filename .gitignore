@@ -58,3 +58,4 @@ node_modules/__pycache__/
 *.pyc
 logs/*.jsonl
 GODMODE_CONTEXT.md
+godmode-runtime.skill
