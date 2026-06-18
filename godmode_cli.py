@@ -4,6 +4,7 @@
 import json
 import sys
 from pathlib import Path
+from version import __version__
 
 # Load .env.local then .env (first found wins per key)
 try:
@@ -309,10 +310,14 @@ COMMANDS = {
 def main() -> None:
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
-        print("\n  godmode_cli.py <command> [args]\n")
+        print(f"\n  godmode v{__version__} — local-first AI routing runtime\n")
+        print("  Usage: godmode_cli.py <command> [args]\n")
         for name, (_, desc) in COMMANDS.items():
             print(f"    {name:<10} {desc}")
         print()
+        return
+    if args[0] in ("-v", "--version"):
+        print(f"godmode v{__version__}")
         return
 
     cmd = args[0]

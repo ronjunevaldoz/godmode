@@ -12,6 +12,7 @@
 **Local-first AI routing runtime.**  
 Route any prompt to the right model. Keep it free. Track every dollar saved.
 
+[![Version](https://img.shields.io/badge/version-v0.5.0-blue)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![CI](https://github.com/ronjunevaldoz/godmode/actions/workflows/ci.yml/badge.svg)](https://github.com/ronjunevaldoz/godmode/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-72%25-yellow)](docs/TEST_COVERAGE.md)
@@ -101,6 +102,10 @@ To register it globally (available in all projects):
 | `models` | List Ollama model registry |
 
 ---
+
+## Installation
+
+Full installation guide for all environments (Claude Code, Claude Desktop, Cursor, Continue, Windsurf, Codex CLI, Gemini CLI): [docs/INSTALL.md](docs/INSTALL.md)
 
 ## Install as a Claude Code skill
 
