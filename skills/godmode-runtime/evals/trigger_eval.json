@@ -48,7 +48,7 @@
     "should_trigger": false
   },
   {
-    "query": "I want to use ollama to run llama3 locally and chat with it from the terminal — how do I set that up",
+    "query": "I want to use Ollama to run qwen3:8b locally and chat with it from the terminal — how do I set that up",
     "should_trigger": false
   },
   {

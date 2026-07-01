@@ -53,6 +53,30 @@ def cmd_eval(_args: list[str]) -> None:
     run_eval()
 
 
+def cmd_benchmark(args: list[str]) -> None:
+    """Run a small local model benchmark across the available Ollama models."""
+    from evaluation.model_benchmark import run_benchmark, render_report, DEFAULT_MODEL_IDS
+    from routing.model_recommender import _missing_ollama_entries, pull_models
+
+    model_ids = DEFAULT_MODEL_IDS
+    if "--pull" in args:
+        missing = _missing_ollama_entries()
+        if missing:
+            print("Pulling missing models before benchmark:\n")
+            for entry in missing:
+                print(f"  {entry['model_id']:<22} → {entry['model']}")
+            print()
+            pull_models([entry["model"] for entry in missing])
+
+    if "--models" in args:
+        idx = args.index("--models")
+        if idx + 1 < len(args):
+            model_ids = [m.strip() for m in args[idx + 1].split(",") if m.strip()]
+
+    benchmark = run_benchmark(model_ids=model_ids)
+    print(render_report(benchmark))
+
+
 def cmd_clear(_args: list[str]) -> None:
     log_path = Path("memory/task_logs.json")
     log_path.write_text("[]")
@@ -141,8 +165,25 @@ def cmd_coverage(_args: list[str]) -> None:
 
 def cmd_recommend(args: list[str]) -> None:
     """Show system-aware model recommendations. Pass --apply to patch the registry."""
-    from routing.model_recommender import generate_report, patch_registry
+    from routing.model_recommender import (
+        generate_report,
+        patch_registry,
+        generate_model_research_report,
+        _missing_ollama_entries,
+        pull_models,
+    )
     print(generate_report())
+    if "--pull" in args:
+        print(generate_model_research_report())
+        missing = _missing_ollama_entries()
+        if missing:
+            print("  Pulling missing models now:\n")
+            results = pull_models([entry["model"] for entry in missing])
+            for model_name, status in results.items():
+                print(f"  {model_name:<35} {status}")
+            print()
+        else:
+            print("  No missing Ollama registry models to pull.\n")
     if "--apply" in args:
         changes = patch_registry(dry_run=False)
         if changes:
@@ -218,10 +259,64 @@ def cmd_setup(_args: list[str]) -> None:
 
 
 def cmd_models(_args: list[str]) -> None:
-    """Show all local Ollama models and their assigned roles."""
+    """Show local Ollama models, registry research, or pull missing models."""
     import requests, os
+
+    sub = _args[0] if _args else "list"
     base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     base = base.replace("/api/chat", "")
+
+    if sub == "research":
+        from routing.model_recommender import generate_model_research_report
+        print(generate_model_research_report())
+        return
+
+    if sub == "pull":
+        from routing.model_recommender import (
+            _missing_ollama_entries,
+            _registry_ollama_entries,
+            pull_models,
+            enable_registry_models,
+        )
+
+        explicit_ids = _args[1:]
+        if explicit_ids:
+            registry_entries = {e["model_id"]: e for e in _registry_ollama_entries(include_disabled=True)}
+            targets = [registry_entries[mid] for mid in explicit_ids if mid in registry_entries]
+        else:
+            targets = _missing_ollama_entries()
+
+        if not targets:
+            print("No matching Ollama registry models found.")
+            return
+
+        print("\n  Pulling missing Ollama registry models:\n")
+        for entry in targets:
+            print(f"  {entry['model_id']:<22} → {entry['model']}")
+        print()
+
+        results = pull_models([entry["model"] for entry in targets])
+        for model_name, status in results.items():
+            print(f"  {model_name:<35} {status}")
+        print()
+
+        if explicit_ids:
+            updated = enable_registry_models([
+                entry["model_id"]
+                for entry in targets
+                if not str(results.get(entry["model"], "")).startswith("error")
+            ])
+            if updated:
+                print("  Enabled registry models:")
+                for model_id in updated:
+                    print(f"    {model_id}")
+                print()
+        return
+
+    if sub not in ("list", ""):
+        print("Usage: godmode_cli.py models [list|research|pull]")
+        return
+
     try:
         data = requests.get(f"{base}/api/tags", timeout=5).json()
     except Exception as e:
@@ -299,10 +394,11 @@ COMMANDS = {
     "stats":     (cmd_stats,     "Token savings and routing dashboard"),
     "report":    (cmd_report,    "Show flagged-run failure log grouped by intent"),
     "eval":      (cmd_eval,      "Run routing accuracy evaluation"),
+    "benchmark": (cmd_benchmark, "Compare local models on a small prompt suite  [--models a,b,c] [--pull]"),
     "clear":     (cmd_clear,     "Reset memory / task logs"),
-    "models":    (cmd_models,    "List Ollama models and their roles"),
+    "models":    (cmd_models,    "List Ollama models, research registry targets, or pull missing ones  [list|research|pull]"),
     "preset":    (cmd_preset,    "Model presets by RAM tier  [list|show|apply <tier|auto>]"),
-    "recommend": (cmd_recommend, "Dynamic model recommendations  [--apply to patch registry]"),
+    "recommend": (cmd_recommend, "Dynamic model recommendations  [--apply to patch registry|--pull missing Ollama models]"),
     "coverage":  (cmd_coverage,  "Run test suite with line coverage report"),
 }
 

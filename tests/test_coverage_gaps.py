@@ -286,8 +286,15 @@ class TestGodmodeCLI(unittest.TestCase):
                 except SystemExit:
                     pass
         output = buf.getvalue()
-        for cmd in ("run", "stats", "eval", "clear", "models", "preset", "recommend", "coverage"):
+        for cmd in ("run", "stats", "eval", "benchmark", "clear", "models", "preset", "recommend", "coverage"):
             self.assertIn(cmd, output)
+
+    def test_benchmark_command_wired(self):
+        import godmode_cli as cli
+        with patch("evaluation.model_benchmark.run_benchmark", return_value={"results": [], "skipped": [], "cases": [], "models": []}) as mock_run, \
+             patch("evaluation.model_benchmark.render_report", return_value="benchmark report"):
+            cli.cmd_benchmark([])
+            mock_run.assert_called_once()
 
     def test_unknown_command_exits_nonzero(self):
         import godmode_cli as cli
@@ -335,6 +342,44 @@ class TestGodmodeCLI(unittest.TestCase):
             with redirect_stdout(buf):
                 cli.cmd_models([])
         self.assertIn("Cannot reach", buf.getvalue())
+
+    def test_models_research_prints_report(self):
+        import godmode_cli as cli
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with patch("routing.model_recommender._get_pulled_models", return_value=[]):
+            with redirect_stdout(buf):
+                cli.cmd_models(["research"])
+        output = buf.getvalue()
+        self.assertIn("Model Research & Pull Report", output)
+        self.assertIn("Missing pulled models", output)
+
+    def test_models_pull_only_pulls_missing_models(self):
+        import godmode_cli as cli
+        with patch("routing.model_recommender._missing_ollama_entries", return_value=[
+            {"model_id": "ollama_qwen_fast", "model": "qwen3:8b"},
+        ]), patch("routing.model_recommender.pull_models", return_value={"qwen3:8b": "success"}) as mock_pull:
+            cli.cmd_models(["pull"])
+            mock_pull.assert_called_once_with(["qwen3:8b"])
+
+    def test_recommend_pull_invokes_pull_models(self):
+        import godmode_cli as cli
+        with patch("routing.model_recommender._missing_ollama_entries", return_value=[
+            {"model_id": "ollama_qwen_fast", "model": "qwen3:8b"},
+        ]), patch("routing.model_recommender.pull_models", return_value={"qwen3:8b": "success"}) as mock_pull, patch("routing.model_recommender.generate_model_research_report", return_value="report"):
+            cli.cmd_recommend(["--pull"])
+            mock_pull.assert_called_once_with(["qwen3:8b"])
+
+    def test_models_pull_explicit_enables_requested_registry_model(self):
+        import godmode_cli as cli
+        with patch("routing.model_recommender._registry_ollama_entries", return_value=[
+            {"model_id": "ollama_qwythos", "model": "hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M", "role": "research", "enabled": False}
+        ]), patch("routing.model_recommender.pull_models", return_value={
+            "hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M": "success"
+        }), patch("routing.model_recommender.enable_registry_models") as mock_enable:
+            cli.cmd_models(["pull", "ollama_qwythos"])
+            mock_enable.assert_called_once_with(["ollama_qwythos"])
 
 
 if __name__ == "__main__":

@@ -95,6 +95,9 @@ You just pulled a new model and want to assign it to code review tasks.
 
 ```bash
 python3 "$GODMODE_CLI" models          # see what's pulled and what role each has
+python3 "$GODMODE_CLI" models research # registry-driven recommendations + missing pulls
+python3 "$GODMODE_CLI" models pull     # pull any enabled Ollama registry models that are missing
+python3 "$GODMODE_CLI" models pull ollama_qwythos  # pull and enable a specific experimental model
 python3 "$GODMODE_CLI" recommend       # get suggestions based on your pulled models
 python3 "$GODMODE_CLI" recommend --apply   # apply them to model_registry.yaml
 ```
@@ -260,9 +263,14 @@ python3 godmode_cli.py run "prompt" --session <name>      # Multi-turn session
 python3 godmode_cli.py stats                              # Savings dashboard + verdict
 python3 godmode_cli.py report                             # Failure log by intent
 python3 godmode_cli.py models                             # List Ollama models and roles
+python3 godmode_cli.py models research                    # Registry-driven recommendations + missing pulls
+python3 godmode_cli.py models pull                        # Pull enabled Ollama registry models
+python3 godmode_cli.py models pull ollama_qwythos         # Pull and enable Qwythos explicitly
 python3 godmode_cli.py preset apply auto                  # Auto-select preset from RAM
 python3 godmode_cli.py recommend                          # Suggest registry improvements
 python3 godmode_cli.py recommend --apply                  # Apply recommendations
+python3 godmode_cli.py recommend --pull                   # Show registry-driven model research + pull missing models
+python3 godmode_cli.py benchmark                          # Compare local models on a small prompt suite
 python3 godmode_cli.py session list                       # List saved sessions
 python3 godmode_cli.py session show <name>                # Print session history
 python3 godmode_cli.py session clear <name>               # Delete a session

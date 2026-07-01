@@ -58,6 +58,7 @@ LOCAL_MODEL_ROLES: dict[str, str] = {
     "qwen3-coder:30b":   "code review · bug fix · unit tests",
     "deepseek-r1:14b":   "audit · security · prompt quality",
     "gemma4:12b":        "research · docs · analysis",
+    "hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M": "research · long-context reasoning",
     "qwen3:8b":          "assistant · classification",
     "qwen2.5-coder:14b": "code tasks (legacy)",
     "llava:latest":      "vision · UI",

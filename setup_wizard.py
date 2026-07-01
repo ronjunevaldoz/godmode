@@ -19,6 +19,7 @@ ROLE_KEYS = {
     "Code review / bug fix / tests":       "ollama_qwen_coder",
     "Security audit / deep reasoning":     "ollama_deepseek",
     "Research / docs / analysis":          "ollama_gemma",
+    "Long-context research / reasoning":    "ollama_qwythos",
     "Fast assistant / classification":     "ollama_qwen_fast",
     "Vision / UI screenshots":             "ollama_llava",
 }
@@ -26,6 +27,7 @@ ROLE_KEYS = {
 # Keyword hints to auto-suggest a role for a pulled model
 ROLE_HINTS: list[tuple[list[str], str]] = [
     (["llava", "vision", "moondream", "bakllava"],       "Vision / UI screenshots"),
+    (["qwythos", "mythos"],                               "Long-context research / reasoning"),
     (["deepseek", "r1"],                                  "Security audit / deep reasoning"),
     (["coder", "codestral", "starcoder", "qwen2.5-coder","qwen3-coder"], "Code review / bug fix / tests"),
     (["gemma", "mistral", "phi", "llama"],                "Research / docs / analysis"),

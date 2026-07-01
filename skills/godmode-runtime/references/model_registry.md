@@ -1,10 +1,130 @@
 # Model Registry
 
-Full breakdown of every model in `configs/model_registry.yaml` — what it does, when it wins, and its fallback chain.
+Full breakdown of every model in `configs/model_registry.yaml` — what it does, when it wins, whether it is enabled, and its fallback chain.
 
 ## Models
 
-### `codex_primary` — OpenAI gpt-4o (via `CodexEngineerAgent`)
+### `ollama_qwen_coder` — qwen3-coder:30b (via `OllamaUtilityAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Ollama |
+| Capabilities | `code_review`, `unit_test_generation`, `bug_fixing`, `code_improvement`, `code_execution`, `repo_awareness`, `debugging`, `refactoring` |
+| Cost | low |
+| Latency | medium |
+| Privacy | local |
+| Multimodal | no |
+| Enabled | yes |
+
+**Wins for:** implementation-heavy and review-heavy tasks that need repo awareness, debugging, refactoring, or bug fixes.
+**Role:** `code_review`
+**Fallback:** `codex_primary` → `claude_architect`
+
+---
+
+### `ollama_deepseek` — deepseek-r1:14b (via `OllamaUtilityAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Ollama |
+| Capabilities | `security_audit`, `prompt_refinement`, `long_context_reasoning`, `cheap_batch_processing`, `classification` |
+| Cost | low |
+| Latency | medium |
+| Privacy | local |
+| Multimodal | no |
+| Enabled | yes |
+
+**Wins for:** security audits, prompt refinement, and classification-heavy local tasks.
+**Role:** `security_audit`
+**Fallback:** `claude_architect`
+
+---
+
+### `ollama_gemma` — gemma4:12b (via `OllamaUtilityAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Ollama |
+| Capabilities | `research_synthesis`, `documentation_generation`, `summarization`, `cheap_batch_processing` |
+| Cost | low |
+| Latency | low |
+| Privacy | local |
+| Multimodal | no |
+| Enabled | yes |
+
+**Wins for:** Research.General, summarization, and light documentation drafts.
+**Role:** `research`
+**Fallback:** `claude_architect`
+
+---
+
+### `ollama_qwythos` — Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M (via `OllamaUtilityAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Ollama |
+| Capabilities | `research_synthesis`, `long_context_reasoning`, `summarization` |
+| Cost | low |
+| Latency | medium |
+| Privacy | local |
+| Multimodal | no |
+| Enabled | no |
+| Context | 1,048,576 tokens |
+
+**Wins for:** long-context research and reasoning tasks when you want a stronger local 9B model.
+**Role:** `research`
+**Fallback:** `ollama_gemma` → `claude_architect`
+
+---
+
+### `ollama_qwen_fast` — qwen3:8b (via `OllamaUtilityAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Ollama |
+| Capabilities | `general_assistance`, `classification`, `summarization`, `private_local_processing`, `cheap_batch_processing` |
+| Cost | low |
+| Latency | low |
+| Privacy | local |
+| Multimodal | no |
+| Enabled | yes |
+
+**Wins for:** `Utility.*`, `Assistant.*`, and lightweight classification tasks.
+**Role:** `assistant`
+**Fallback:** `ollama_gemma` → `claude_architect`
+
+---
+
+### `ollama_llava` — llava:latest (via `OllamaUtilityAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Ollama |
+| Capabilities | `multimodal_understanding`, `ui_analysis`, `image_reasoning` |
+| Cost | low |
+| Latency | medium |
+| Privacy | local |
+| Multimodal | yes |
+| Enabled | yes |
+
+**Wins for:** `Multimodal.UI` and `Multimodal.Image` when local vision is sufficient.
+**Role:** `vision`
+**Fallback:** `gemini_vision` → `claude_architect`
+
+---
+
+### `claude_architect` — claude-opus-4-8 (via `ClaudeArchitectAgent`)
+| Field | Value |
+|-------|-------|
+| Provider | Anthropic |
+| Capabilities | `architecture_review`, `final_validation`, `long_context_reasoning`, `documentation_generation` |
+| Cost | high |
+| Latency | medium |
+| Privacy | cloud |
+| Multimodal | no |
+| Enabled | yes |
+
+**Wins for:** `Architecture.*`, `Review.Architecture`, `Documentation.Spec`, `UNKNOWN`, and low-confidence or escalated requests in standalone mode.
+**Env var:** `ANTHROPIC_API_KEY`
+**Fallback:** none
+
+---
+
+### `codex_primary` — gpt-4o (via `CodexEngineerAgent`)
 | Field | Value |
 |-------|-------|
 | Provider | OpenAI |
@@ -13,26 +133,11 @@ Full breakdown of every model in `configs/model_registry.yaml` — what it does,
 | Latency | medium |
 | Privacy | cloud |
 | Multimodal | no |
+| Enabled | yes |
 
-**Wins for:** `Implementation.*` intents — Android, KMP, JNI, Backend, DevOps, Web.
+**Wins for:** `Implementation.*` intents that need execution, repo awareness, debugging, or refactoring.
 **Env var:** `OPENAI_API_KEY`
 **Fallback:** `claude_architect`
-
----
-
-### `claude_architect` — claude-sonnet-4 (via `ClaudeArchitectAgent`)
-| Field | Value |
-|-------|-------|
-| Provider | Anthropic |
-| Capabilities | `long_context_reasoning`, `architecture_review`, `documentation_generation`, `final_validation` |
-| Cost | high |
-| Latency | medium |
-| Privacy | cloud |
-| Multimodal | no |
-
-**Wins for:** `Architecture.*`, `Review.*`, `Documentation.Spec`, `UNKNOWN`, and any ESCALATE decision.
-**Also:** Hard-routed safety net when no model scores ≥ 0 or confidence < 0.5.
-**Env var:** `ANTHROPIC_API_KEY`
 
 ---
 
@@ -45,37 +150,27 @@ Full breakdown of every model in `configs/model_registry.yaml` — what it does,
 | Latency | medium |
 | Privacy | cloud |
 | Multimodal | yes |
+| Enabled | no |
 | Context | 1M tokens |
 
-**Wins for:** `Multimodal.UI`, `Multimodal.Image`. Its multimodal flag gives +50 bonus; non-multimodal models get −100 for these intents.
+**Wins for:** cloud `Multimodal.*` tasks when enabled.
 **Env var:** `GOOGLE_API_KEY`
-**Fallback:** `claude_architect`
-
----
-
-### `ollama_qwen` — qwen2.5-coder:14b (via `OllamaUtilityAgent`)
-| Field | Value |
-|-------|-------|
-| Provider | Ollama (local) |
-| Capabilities | `private_local_processing`, `cheap_batch_processing`, `classification`, `summarization` |
-| Cost | low |
-| Latency | low |
-| Privacy | local |
-| Multimodal | no |
-
-**Wins for:** `Utility.*` intents. Local-first heuristic adds +50 privacy bonus on top of low-cost (+20) and low-latency (+15) bonuses.
-**Env var:** `OLLAMA_BASE_URL` (defaults to `http://localhost:11434/api/chat`)
-**Fallback:** `codex_primary` → `claude_architect`
+**Fallback:** `ollama_llava` → `claude_architect`
 
 ---
 
 ## Fallback chains
 
 ```
-codex_primary   → claude_architect
-gemini_vision   → claude_architect
-ollama_qwen     → codex_primary → claude_architect
-claude_architect → (terminal — no fallback)
+ollama_qwen_coder → codex_primary → claude_architect
+ollama_deepseek   → claude_architect
+ollama_gemma      → claude_architect
+ollama_qwythos    → ollama_gemma → claude_architect
+ollama_qwen_fast  → ollama_gemma → claude_architect
+ollama_llava      → gemini_vision → claude_architect
+codex_primary     → claude_architect
+gemini_vision     → ollama_llava → claude_architect
+claude_architect  → (terminal — no fallback)
 ```
 
 ## Adding a model

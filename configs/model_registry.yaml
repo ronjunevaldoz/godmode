@@ -57,6 +57,22 @@ models:
     is_paid: false
     enabled: true
 
+  ollama_qwythos:
+    provider: ollama
+    model: hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M
+    role: research
+    capabilities:
+      - research_synthesis
+      - long_context_reasoning
+      - summarization
+    context_window: 1048576
+    cost_tier: low
+    latency_tier: medium
+    privacy: local
+    multimodal: false
+    is_paid: false
+    enabled: false
+
   ollama_qwen_fast:
     provider: ollama
     model: qwen3:8b
@@ -157,6 +173,9 @@ fallbacks:
   ollama_deepseek:
     - claude_architect
   ollama_gemma:
+    - claude_architect
+  ollama_qwythos:
+    - ollama_gemma
     - claude_architect
   ollama_qwen_fast:
     - ollama_gemma

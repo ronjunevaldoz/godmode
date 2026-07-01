@@ -202,6 +202,6 @@ def _cheer(m: dict) -> str:
     if lp > 0:
         return (
             f"  WARNING  Only {lp:.0f}% local — most tokens are hitting the cloud. "
-            f"Run 'preset recommend' to improve routing."
+            f"Run 'models research' or 'recommend' to improve routing."
         )
     return "  IN THE RED  0% local — all requests went to cloud. Check Ollama is running."

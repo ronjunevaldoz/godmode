@@ -30,6 +30,7 @@ _AGENT_FACTORIES: dict[str, Callable[[], Any]] = {
     "ollama_qwen_coder": lambda: OllamaUtilityAgent(model="qwen3-coder:30b",  role="code_review"),
     "ollama_deepseek":   lambda: OllamaUtilityAgent(model="deepseek-r1:14b",  role="security_audit"),
     "ollama_gemma":      lambda: OllamaUtilityAgent(model="gemma4:12b",        role="research"),
+    "ollama_qwythos":    lambda: OllamaUtilityAgent(model="hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M", role="research"),
     "ollama_qwen_fast":  lambda: OllamaUtilityAgent(model="qwen3:8b",          role="assistant"),
     "ollama_llava":      lambda: OllamaUtilityAgent(model="llava:latest",      role="vision"),
     # Legacy alias kept for backward compatibility

@@ -56,11 +56,10 @@ Skills are located in the `skills/` directory and include:
 - `code_review_skill.md`
 - `documentation_skill.md`
 
-Each skill is defined as a markdown file with:
-- Description of capabilities
-- Provider configuration
-- Usage examples
-- Required parameters
+Each skill is defined as a markdown file with YAML frontmatter plus a markdown body:
+- `name`
+- `description`
+- Capability notes, examples, and usage guidance
 
 ## Installation
 
@@ -72,14 +71,15 @@ pip install -r requirements.txt
 2. Set up Ollama with required models:
 ```bash
 # Install Ollama from https://ollama.com/download
-# Pull required models
-ollama pull qwen2.5-coder:14b
-ollama pull llama3.2:1b
+# Pull a code model and a fast general model
+# Current registry defaults: qwen3-coder:30b and qwen3:8b
+ollama pull qwen3-coder:30b
+ollama pull qwen3:8b
 ```
 
-3. Install skills system:
+3. Configure the runtime:
 ```bash
-python godmode_cli.py install-skills
+python3 godmode_cli.py setup
 ```
 
 ## Usage
@@ -91,11 +91,15 @@ python main.py "Create a Python function to calculate Fibonacci numbers"
 
 ### Advanced Usage:
 ```bash
-# List available skills
-python godmode_cli.py skills
+# Inspect the registry and recommendations
+python3 godmode_cli.py models
+python3 godmode_cli.py models research
+python3 godmode_cli.py models pull
+python3 godmode_cli.py recommend
+python3 godmode_cli.py recommend --pull
 
 # Run with specific intent
-python main.py "Design a microservices architecture for an e-commerce platform"
+python3 main.py "Design a microservices architecture for an e-commerce platform"
 ```
 
 ## System Components

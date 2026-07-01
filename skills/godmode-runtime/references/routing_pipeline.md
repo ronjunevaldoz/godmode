@@ -20,7 +20,7 @@ User Prompt
 4. select_best_model()        ← scores every enabled model in model_registry.yaml
     │
     ▼
-5. Governance overrides       ← ESCALATE or Architecture.*/Review.* → claude_architect
+5. Mode-specific governance   ← skill mode flags review_required; standalone may override to cloud
     │
     ▼
 Selected model_id
@@ -60,19 +60,23 @@ The model with the highest score wins. If the top score is negative, `claude_arc
 
 ## Local-first heuristic
 
-`Utility.*` and `Classification` intents automatically set `privacy: local`, boosting Ollama by 50 points. This keeps cheap, repetitive tasks off paid APIs.
+`Utility.*`, `Utility.Classification`, `Assistant.*`, and `Research.*` intents automatically set `privacy: local`, boosting Ollama by 50 points. This keeps cheap, repetitive tasks off paid APIs.
 
 ## Confidence thresholds
 
 | Score | Decision | Effect |
 |-------|----------|--------|
 | ≥ 0.5 | PROCEED | Use scored model |
-| < 0.5 | ESCALATE | Override to `claude_architect` regardless of score |
+| < 0.5 | ESCALATE | Skill mode flags review; standalone mode escalates to `claude_architect` |
 
 ## Governance hard-routes
 
-Even with high confidence, these intents always go to `claude_architect`:
+These intents are always treated as governance-sensitive:
 - `Architecture.*`
 - `Review.*`
 
-Rationale: these need deterministic quality — the registry score is bypassed entirely.
+In skill mode, they are flagged for review while preserving the selected local model. In standalone mode, `Architecture.*`, `Review.Architecture`, and `Documentation.Spec` are routed to `claude_architect`.
+
+Additional standalone safeguards:
+- `Fix.Bug` and `Review.Security` go to `codex_primary`
+- High-complexity prompts may be escalated to `codex_primary` unless already on a cloud model

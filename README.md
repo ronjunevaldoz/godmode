@@ -151,11 +151,15 @@ Set via `GODMODE_MODE=skill` or `GODMODE_MODE=standalone` in `.env.local`.
 | `session clear <name>` | Delete a session |
 | `stats` | Token savings dashboard + verdict |
 | `report` | Failure log — flagged runs grouped by intent, avg quality scores |
-| `models` | List pulled Ollama models and assigned roles |
+| `models` | List pulled Ollama models, research registry targets, or pull missing ones |
 | `preset list` | RAM-tiered preset matrix |
 | `preset apply auto` | Auto-detect server RAM, apply best preset |
 | `recommend` | Score pulled models, suggest registry changes |
 | `recommend --apply` | Apply recommendations to registry |
+| `recommend --pull` | Show registry-driven model research and pull missing Ollama models |
+| `benchmark` | Compare local models on a small prompt suite |
+| `models research` | Show registry-driven model recommendations and missing pulls |
+| `models pull` | Pull enabled Ollama registry models that are missing locally |
 | `eval` | Routing accuracy evaluation (11 cases) |
 | `clear` | Reset task memory |
 | `coverage` | Test suite with line coverage |
@@ -199,6 +203,7 @@ Verdicts: `PERFECT` · `WINNING` · `NEUTRAL` · `WARNING` · `IN THE RED`
 | `ollama_qwen_coder` | `qwen3-coder:30b` | Code review, bug fix, tests |
 | `ollama_deepseek` | `deepseek-r1:14b` | Security audit, deep reasoning |
 | `ollama_gemma` | `gemma4:12b` | Research, docs, analysis |
+| `ollama_qwythos` | `hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M` | Long-context research, reasoning |
 | `ollama_qwen_fast` | `qwen3:8b` | Fast tasks, classification, triage |
 | `ollama_llava` | `llava:latest` | Vision, UI screenshots |
 | `codex_primary` | `gpt-4o` | Cloud code (standalone only) |

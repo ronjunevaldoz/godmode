@@ -91,6 +91,6 @@ File: `agents/ollama_utility.py`
 - No API key required — local model only
 - `execute()` — HTTP POST to `OLLAMA_BASE_URL` (default: `http://localhost:11434/api/chat`) with 30s timeout
 - Validates prompt on every call; propagates `requests.exceptions.HTTPError` on failure
-- Default model: `llama3` (override via constructor)
+- Default model: `qwen3:8b` (override via constructor)
 
 **Local-first policy:** Utility intents automatically route here via the `privacy: local` heuristic (+50 score bonus).
