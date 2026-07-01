@@ -1,12 +1,14 @@
+from pathlib import Path
+
 import yaml
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Tuple
 
 class RegistryValidator:
     """
     Validates the Model Registry for consistency and correctness.
     """
-    def __init__(self, registry_path: str = "configs/model_registry.yaml"):
-        self.registry_path = registry_path
+    def __init__(self, registry_path: str | Path = Path(__file__).resolve().parent.parent / "configs" / "model_registry.yaml"):
+        self.registry_path = Path(registry_path)
 
     def validate(self) -> Tuple[bool, List[str]]:
         errors = []

@@ -1,8 +1,12 @@
 import json
+from pathlib import Path
+
 from routing.router import route_request
 
+ROOT = Path(__file__).resolve().parent.parent
+
 def run_eval():
-    with open("evaluation/routing_cases.json", "r") as f:
+    with open(ROOT / "evaluation" / "routing_cases.json", "r") as f:
         cases = json.load(f)
 
     print(f"{'Prompt':<50} | {'Expected Intent':<25} | {'Actual Intent':<25} | {'Result'}")

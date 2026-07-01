@@ -5,12 +5,15 @@ to model_registry.yaml based on server RAM tier.
 
 import logging
 import os
+from pathlib import Path
+
 import yaml
 
 logger = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parent.parent
 
-PRESETS_PATH  = "configs/model_presets.yaml"
-REGISTRY_PATH = "configs/model_registry.yaml"
+PRESETS_PATH  = ROOT / "configs" / "model_presets.yaml"
+REGISTRY_PATH = ROOT / "configs" / "model_registry.yaml"
 
 
 def _load_presets() -> dict:

@@ -1,14 +1,16 @@
 import json
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class CapabilityResolver:
     """Maps a detected intent to the set of capabilities required to fulfill it."""
 
-    def __init__(self, map_path: str = "routing/intent_map.json") -> None:
-        self.map_path = map_path
+    def __init__(self, map_path: str | Path = ROOT / "routing" / "intent_map.json") -> None:
+        self.map_path = Path(map_path)
         self._intent_map: dict[str, list[str]] = self._load_map()
 
     def _load_map(self) -> dict[str, list[str]]:

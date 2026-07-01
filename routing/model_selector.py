@@ -1,15 +1,17 @@
 import logging
+from pathlib import Path
 
 import yaml
 
 logger = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class ModelSelector:
     """Selects the best model from the registry based on capability scoring."""
 
-    def __init__(self, registry_path: str = "configs/model_registry.yaml") -> None:
-        self.registry_path = registry_path
+    def __init__(self, registry_path: str | Path = ROOT / "configs" / "model_registry.yaml") -> None:
+        self.registry_path = Path(registry_path)
         self.registry: dict = self._load_registry()
 
     def _load_registry(self) -> dict:

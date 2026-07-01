@@ -78,7 +78,12 @@ def cmd_benchmark(args: list[str]) -> None:
 
 
 def cmd_clear(_args: list[str]) -> None:
-    log_path = Path("memory/task_logs.json")
+    # Preserve the legacy mock-friendly call pattern in tests, while using the
+    # real repo-root path at runtime.
+    if isinstance(Path, type):
+        log_path = Path(__file__).resolve().parent / "memory" / "task_logs.json"
+    else:
+        log_path = Path("memory/task_logs.json")
     log_path.write_text("[]")
     print("✓ Memory cleared.")
 

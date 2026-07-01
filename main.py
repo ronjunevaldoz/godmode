@@ -60,6 +60,7 @@ def _build_file_context(prompt: str, explicit_files: list[str]) -> str:
     return "\n\n".join(found) + "\n\n" + prompt
 
 _GODMODE_DIR = Path(__file__).parent
+_ROOT_DIR = Path(__file__).resolve().parent
 _CODE_INTENTS = {"Review", "Fix", "Improve", "Architecture", "Generate"}
 
 
@@ -77,7 +78,7 @@ def _load_project_context(intent: str) -> str:
     return ""
 
 
-_LOGS_DIR = Path(__file__).parent / "logs"
+_LOGS_DIR = _ROOT_DIR / "logs"
 _FAILURE_LOG = _LOGS_DIR / "failures.jsonl"
 
 
@@ -118,7 +119,7 @@ adapter = ProviderAdapter()
 selector = ModelSelector()
 
 try:
-    with open("configs/fallback_chain.yaml") as f:
+    with open(_ROOT_DIR / "configs" / "fallback_chain.yaml") as f:
         FALLBACK_CONFIG = yaml.safe_load(f)
 except OSError:
     FALLBACK_CONFIG = {}

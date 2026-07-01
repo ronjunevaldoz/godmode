@@ -12,7 +12,7 @@
 **Local-first AI routing runtime.**  
 Route any prompt to the right model. Keep it free. Track every dollar saved.
 
-[![Version](https://img.shields.io/badge/version-v0.5.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.5.1-blue)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![CI](https://github.com/ronjunevaldoz/godmode/actions/workflows/ci.yml/badge.svg)](https://github.com/ronjunevaldoz/godmode/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-72%25-yellow)](docs/TEST_COVERAGE.md)

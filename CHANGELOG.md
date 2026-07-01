@@ -6,6 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.5.1] — 2026-07-01
+
+### Fixed
+- Runtime config loads now resolve from the repository root, so `run`, `eval`, `benchmark`, and `preset` work when launched from outside the project directory
+- `godmode_cli.py clear` now resets the task log using the repo-root path at runtime while preserving the existing test mock behavior
+
+---
+
 ## [0.5.0] — 2026-06-18
 
 ### Added

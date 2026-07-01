@@ -9,16 +9,19 @@ falls back to probing the largest loaded model as a lower-bound estimate.
 
 import logging
 import os
+from pathlib import Path
+
 import yaml
 import requests
 
 logger = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parent.parent
 
 OLLAMA_BASE_URL: str = os.getenv(
     "OLLAMA_BASE_URL", "http://localhost:11434"
 ).replace("/api/chat", "")
 
-REGISTRY_PATH = "configs/model_registry.yaml"
+REGISTRY_PATH = ROOT / "configs" / "model_registry.yaml"
 
 # Set OLLAMA_SERVER_RAM_GB to your dedicated server's usable RAM/VRAM in GB.
 # Example in .env:  OLLAMA_SERVER_RAM_GB=48
